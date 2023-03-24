@@ -22,12 +22,9 @@ import LanguageIcon from '../../assets/images/SVG/Globe.svg';
 import HelpIcon from '../../assets/images/SVG/Help Icon.svg';
 import NodeOn from '../../assets/images/SVG/Node On.svg';
 import POS from '../../assets/images/SVG/POS.svg';
-import ReceiveIcon from '../../assets/images/SVG/Receive.svg';
 import SendIcon from '../../assets/images/SVG/Send.svg';
 
-import NodeIdenticon, { NodeTitle } from '../../components/NodeIdenticon';
-import Screen from '../../components/Screen';
-
+import NodeIdenticon, { NodeTitle } from './../../components/NodeIdenticon';
 import { themeColor } from './../../utils/ThemeUtils';
 import { localeString } from './../../utils/LocaleUtils';
 import BackendUtils from './../../utils/BackendUtils';
@@ -67,7 +64,7 @@ export default class Settings extends React.Component<
     render() {
         const { navigation, SettingsStore } = this.props;
         const { showHiddenSettings, easterEggCount } = this.state;
-        const { implementation, settings } = SettingsStore;
+        const { settings } = SettingsStore;
 
         const selectedNode: any =
             (settings &&
@@ -93,7 +90,12 @@ export default class Settings extends React.Component<
         });
 
         return (
-            <Screen>
+            <View
+                style={{
+                    flex: 1,
+                    backgroundColor: themeColor('background')
+                }}
+            >
                 <Header
                     leftComponent={<BackButton />}
                     centerComponent={{
@@ -103,14 +105,15 @@ export default class Settings extends React.Component<
                             fontFamily: 'Lato-Regular'
                         }
                     }}
-                    backgroundColor="transparent"
+                    backgroundColor={themeColor('background')}
                     containerStyle={{
                         borderBottomWidth: 0
                     }}
                 />
                 <ScrollView
                     style={{
-                        flex: 1
+                        flex: 1,
+                        backgroundColor: themeColor('background')
                     }}
                 >
                     <TouchableOpacity
@@ -195,6 +198,59 @@ export default class Settings extends React.Component<
                             )}
                         </View>
                     </TouchableOpacity>
+                    <View
+                        style={{
+                            backgroundColor: themeColor('secondary'),
+
+                            width: '90%',
+                            height: 45,
+                            borderRadius: 10,
+                            alignSelf: 'center',
+                            marginBottom: 15,
+                            marginTop: 5
+                        }}
+                    >
+                        {false && (
+                            <View style={styles.columnField}>
+                                <View>
+                                    <AccountIcon stroke={themeColor('text')} />
+                                </View>
+                                <Text
+                                    style={{
+                                        ...styles.columnText,
+                                        color: themeColor('text')
+                                    }}
+                                >
+                                    Accounts
+                                </Text>
+                                <View style={styles.ForwardArrow}>
+                                    <ForwardIcon />
+                                </View>
+                            </View>
+                        )}
+                        {/* <View style={styles.separationLine} /> */}
+                        <TouchableOpacity
+                            style={styles.columnField}
+                            onPress={() =>
+                                navigation.navigate('ContactsSettings')
+                            }
+                        >
+                            <View>
+                                <ContactIcon stroke={themeColor('text')} />
+                            </View>
+                            <Text
+                                style={{
+                                    ...styles.columnText,
+                                    color: themeColor('text')
+                                }}
+                            >
+                                Contacts
+                            </Text>
+                            <View style={styles.ForwardArrow}>
+                                <ForwardIcon />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
 
                     {selectedNode && BackendUtils.supportsNodeInfo() && (
                         <View
@@ -204,8 +260,7 @@ export default class Settings extends React.Component<
                                 height: 45,
                                 borderRadius: 10,
                                 alignSelf: 'center',
-                                marginBottom: 15,
-                                marginTop: 5
+                                marginBottom: 15
                             }}
                         >
                             <TouchableOpacity
@@ -229,57 +284,13 @@ export default class Settings extends React.Component<
                     )}
 
                     {/* Coming Soon */}
-                    {false && (
-                        <View
-                            style={{
-                                backgroundColor: themeColor('secondary'),
-                                width: '90%',
-                                height: 90,
-                                borderRadius: 10,
-                                alignSelf: 'center'
-                            }}
-                        >
-                            <View style={styles.columnField}>
-                                <View>
-                                    <AccountIcon stroke={themeColor('text')} />
-                                </View>
-                                <Text
-                                    style={{
-                                        ...styles.columnText,
-                                        color: themeColor('text')
-                                    }}
-                                >
-                                    Accounts
-                                </Text>
-                                <View style={styles.ForwardArrow}>
-                                    <ForwardIcon />
-                                </View>
-                            </View>
 
-                            <View style={styles.separationLine} />
-                            <View style={styles.columnField}>
-                                <View>
-                                    <ContactIcon stroke={themeColor('text')} />
-                                </View>
-                                <Text
-                                    style={{
-                                        ...styles.columnText,
-                                        color: themeColor('text')
-                                    }}
-                                >
-                                    Contacts
-                                </Text>
-                                <View style={styles.ForwardArrow}>
-                                    <ForwardIcon />
-                                </View>
-                            </View>
-                        </View>
-                    )}
                     {selectedNode && BackendUtils.isLNDBased() && (
                         <View
                             style={{
                                 backgroundColor: themeColor('secondary'),
                                 width: '90%',
+                                height: 45,
                                 borderRadius: 10,
                                 alignSelf: 'center',
                                 marginBottom: 15
@@ -306,74 +317,8 @@ export default class Settings extends React.Component<
                                     <ForwardIcon />
                                 </View>
                             </TouchableOpacity>
-
-                            <View style={styles.separationLine} />
-                            <TouchableOpacity
-                                style={styles.columnField}
-                                onPress={() =>
-                                    navigation.navigate('InvoicesSettings')
-                                }
-                            >
-                                <View>
-                                    <ReceiveIcon stroke={themeColor('text')} />
-                                </View>
-                                <Text
-                                    style={{
-                                        ...styles.columnText,
-                                        color: themeColor('text')
-                                    }}
-                                >
-                                    {localeString(
-                                        'views.Wallet.Wallet.invoices'
-                                    )}
-                                </Text>
-                                <View style={styles.ForwardArrow}>
-                                    <ForwardIcon />
-                                </View>
-                            </TouchableOpacity>
                         </View>
                     )}
-                    {selectedNode &&
-                        !BackendUtils.isLNDBased() &&
-                        implementation !== 'lndhub' && (
-                            <View
-                                style={{
-                                    backgroundColor: themeColor('secondary'),
-                                    width: '90%',
-                                    height: 45,
-                                    borderRadius: 10,
-                                    alignSelf: 'center',
-                                    marginBottom: 15,
-                                    marginTop: 5
-                                }}
-                            >
-                                <TouchableOpacity
-                                    style={styles.columnField}
-                                    onPress={() =>
-                                        navigation.navigate('InvoicesSettings')
-                                    }
-                                >
-                                    <View>
-                                        <ReceiveIcon
-                                            stroke={themeColor('text')}
-                                        />
-                                    </View>
-                                    <Text
-                                        style={{
-                                            ...styles.columnText,
-                                            color: themeColor('text')
-                                        }}
-                                    >
-                                        {localeString(
-                                            'views.Wallet.Wallet.invoices'
-                                        )}
-                                    </Text>
-                                    <View style={styles.ForwardArrow}>
-                                        <ForwardIcon />
-                                    </View>
-                                </TouchableOpacity>
-                            </View>
-                        )}
                     {selectedNode && BackendUtils.supportsMessageSigning() ? (
                         <View
                             style={{
@@ -713,15 +658,14 @@ export default class Settings extends React.Component<
                                 fontSize: 16,
                                 color: '#A7A9AC',
                                 alignSelf: 'center',
-                                fontFamily: 'Lato-Regular',
-                                marginBottom: 20
+                                fontFamily: 'Lato-Regular'
                             }}
                         >
                             {`Zeus v${version}`}
                         </Text>
                     </TouchableWithoutFeedback>
                 </ScrollView>
-            </Screen>
+            </View>
         );
     }
 }
@@ -734,7 +678,7 @@ const styles = StyleSheet.create({
     },
     columnText: {
         fontSize: 16,
-        left: 100,
+        left: '30%',
         position: 'absolute',
         marginLeft: -55,
         paddingTop: 5,
@@ -742,7 +686,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Lato-Regular'
     },
     separationLine: {
-        left: 100,
+        left: '30%',
         width: '70%',
         borderColor: '#A7A9AC',
         opacity: 0.2,

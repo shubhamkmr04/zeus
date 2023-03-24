@@ -49,6 +49,8 @@ import PointOfSaleRecon from './views/Settings/PointOfSaleRecon';
 import PointOfSaleReconExport from './views/Settings/PointOfSaleReconExport';
 import PaymentsSettings from './views/Settings/PaymentsSettings';
 import InvoicesSettings from './views/Settings/InvoicesSettings';
+import ContactsSettings from './views/Settings/ContactsSettings';
+import AddContacts from './views/Settings/AddContacts';
 
 // Routing
 import Routing from './views/Routing/Routing';
@@ -250,6 +252,12 @@ const AppScenes = {
     },
     BumpFee: {
         screen: BumpFee
+    },
+    ContactsSettings: {
+        screen: ContactsSettings
+    },
+    AddContacts: {
+        screen: AddContacts
     }
 };
 
