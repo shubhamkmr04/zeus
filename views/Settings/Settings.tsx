@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback
 } from 'react-native';
-import { Header, Icon } from 'react-native-elements';
 import { inject, observer } from 'mobx-react';
 
 import ForwardIcon from '../../assets/images/SVG/Caret Right-3.svg';
@@ -21,16 +20,22 @@ import BrushIcon from '../../assets/images/SVG/Brush.svg';
 import LanguageIcon from '../../assets/images/SVG/Globe.svg';
 import HelpIcon from '../../assets/images/SVG/Help Icon.svg';
 import NodeOn from '../../assets/images/SVG/Node On.svg';
+import Olympus from '../../assets/images/SVG/Olympus.svg';
 import POS from '../../assets/images/SVG/POS.svg';
 import SendIcon from '../../assets/images/SVG/Send.svg';
 
+
 import NodeIdenticon, { NodeTitle } from './../../components/NodeIdenticon';
-import { themeColor } from './../../utils/ThemeUtils';
-import { localeString } from './../../utils/LocaleUtils';
-import BackendUtils from './../../utils/BackendUtils';
 import { version } from './../../package.json';
 import SettingsStore, { INTERFACE_KEYS } from './../../stores/SettingsStore';
 import UnitsStore from './../../stores/UnitsStore';
+import Header from '../../components/Header';
+import Screen from '../../components/Screen';
+
+import BackendUtils from '../../utils/BackendUtils';
+import { localeString } from '../../utils/LocaleUtils';
+import { themeColor } from '../../utils/ThemeUtils';
+import UrlUtils from '../../utils/UrlUtils';
 
 interface SettingsProps {
     navigation: any;
@@ -75,19 +80,20 @@ export default class Settings extends React.Component<
         const posEnabled =
             settings && settings.pos && settings.pos.squareEnabled;
 
-        const BackButton = () => (
-            <Icon
-                name="arrow-back"
-                onPress={() => navigation.navigate('Wallet', { refresh: true })}
-                color={themeColor('text')}
-                underlayColor="transparent"
-            />
-        );
-
         const implementationDisplayValue = {};
         INTERFACE_KEYS.forEach((item) => {
             implementationDisplayValue[item.value] = item.key;
         });
+
+        const OlympusButton = () => (
+            <TouchableOpacity
+                onPress={() => UrlUtils.goToUrl('https://olympusln.com')}
+            >
+                <View style={{ top: -7 }}>
+                    <Olympus width="35" height="35" fill={themeColor('text')} />
+                </View>
+            </TouchableOpacity>
+        );
 
         return (
             <View
@@ -97,7 +103,7 @@ export default class Settings extends React.Component<
                 }}
             >
                 <Header
-                    leftComponent={<BackButton />}
+                    leftComponent="Back"
                     centerComponent={{
                         text: localeString('views.Settings.title'),
                         style: {
@@ -109,6 +115,8 @@ export default class Settings extends React.Component<
                     containerStyle={{
                         borderBottomWidth: 0
                     }}
+                    rightComponent={OlympusButton}
+                    navigation={navigation}
                 />
                 <ScrollView
                     style={{

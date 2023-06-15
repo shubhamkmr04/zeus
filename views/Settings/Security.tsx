@@ -2,16 +2,17 @@ import { inject, observer } from 'mobx-react';
 import * as React from 'react';
 import { FlatList, ScrollView, View } from 'react-native';
 import { BiometryType } from 'react-native-biometrics';
-import { Header, Icon, ListItem } from 'react-native-elements';
+import { Icon, ListItem } from 'react-native-elements';
 
-import Screen from './../../components/Screen';
-import Switch from './../../components/Switch';
+import Header from '../../components/Header';
+import Screen from '../../components/Screen';
+import Switch from '../../components/Switch';
 
 import SettingsStore from '../../stores/SettingsStore';
 
-import { verifyBiometry } from './../../utils/BiometricUtils';
-import { localeString } from './../../utils/LocaleUtils';
-import { themeColor } from './../../utils/ThemeUtils';
+import { verifyBiometry } from '../../utils/BiometricUtils';
+import { localeString } from '../../utils/LocaleUtils';
+import { themeColor } from '../../utils/ThemeUtils';
 
 interface SecurityProps {
     navigation: any;
@@ -30,27 +31,27 @@ interface SecurityState {
 
 const possibleSecurityItems = [
     {
-        label: localeString('views.Settings.SetPassword.title'),
+        translateKey: 'views.Settings.SetPassword.title',
         screen: 'SetPassword'
     },
     {
-        label: localeString('views.Settings.SetDuressPassword.title'),
+        translateKey: 'views.Settings.SetDuressPassword.title',
         screen: 'SetDuressPassword'
     },
     {
-        label: localeString('views.Settings.SetPin.title'),
+        translateKey: 'views.Settings.SetPin.title',
         screen: 'SetPin'
     },
     {
-        label: localeString('views.Settings.Security.deletePIN'),
+        translateKey: 'views.Settings.Security.deletePIN',
         action: 'DeletePin'
     },
     {
-        label: localeString('views.Settings.SetDuressPin.title'),
+        translateKey: 'views.Settings.SetDuressPin.title',
         screen: 'SetDuressPin'
     },
     {
-        label: localeString('views.Settings.Security.deleteDuressPIN'),
+        translateKey: 'views.Settings.Security.deleteDuressPIN',
         action: 'DeleteDuressPin'
     }
 ];
@@ -202,7 +203,7 @@ export default class Security extends React.Component<
                             fontFamily: 'Lato-Regular'
                         }}
                     >
-                        {item.label}
+                        {localeString(item.translateKey)}
                     </ListItem.Title>
                 </ListItem.Content>
                 <Icon
@@ -225,19 +226,10 @@ export default class Security extends React.Component<
         } = this.state;
         const { updateSettings, settings } = SettingsStore;
 
-        const BackButton = () => (
-            <Icon
-                name="arrow-back"
-                onPress={() => navigation.goBack()}
-                color={themeColor('text')}
-                underlayColor="transparent"
-            />
-        );
-
         return (
             <Screen>
                 <Header
-                    leftComponent={<BackButton />}
+                    leftComponent="Back"
                     centerComponent={{
                         text: localeString('views.Settings.Security.title'),
                         style: {
@@ -245,16 +237,15 @@ export default class Security extends React.Component<
                             fontFamily: 'Lato-Regular'
                         }
                     }}
-                    backgroundColor="transparent"
-                    containerStyle={{
-                        borderBottomWidth: 0
-                    }}
+                    navigation={navigation}
                 />
                 <ScrollView>
                     <FlatList
                         data={displaySecurityItems}
                         renderItem={this.renderItem}
-                        keyExtractor={(item, index) => `${item.label}-${index}`}
+                        keyExtractor={(item, index) =>
+                            `${item.translateKey}-${index}`
+                        }
                         ItemSeparatorComponent={this.renderSeparator}
                     />
                     {settings.supportedBiometryType !== undefined && (

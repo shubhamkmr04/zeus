@@ -30,7 +30,8 @@ export default class KeyValue extends React.Component<KeyValueProps, {}> {
     render() {
         const { keyValue, value, color, sensitive, SettingsStore } = this.props;
 
-        const { lurkerMode } = SettingsStore?.settings?.privacy;
+        const lurkerMode: boolean =
+            SettingsStore?.settings?.privacy?.lurkerMode || false;
 
         {
             /* TODO: rig up RTL */
@@ -84,7 +85,7 @@ export default class KeyValue extends React.Component<KeyValueProps, {}> {
         );
 
         const InteractiveKeyValueRow = () =>
-            !!lurkerMode && isCopyable ? (
+            !lurkerMode && isCopyable ? (
                 <TouchableOpacity onLongPress={() => copyText()}>
                     <KeyValueRow />
                 </TouchableOpacity>

@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Header, Icon } from 'react-native-elements';
+import { Icon } from 'react-native-elements';
 import { inject, observer } from 'mobx-react';
 import _map from 'lodash/map';
 
+import Header from '../../components/Header';
 import ModalBox from '../../components/ModalBox';
 import Screen from '../../components/Screen';
 import Switch from '../../components/Switch';
@@ -48,11 +49,11 @@ export default class InvoicesSettings extends React.Component<
         const settings = await getSettings();
 
         this.setState({
-            addressType: settings.invoices.addressType || '0',
-            memo: settings.invoices.memo || '',
-            expiry: settings.invoices.expiry || '3600',
-            routeHints: settings.invoices.routeHints || false,
-            ampInvoice: settings.invoices.ampInvoice || false
+            addressType: settings?.invoices?.addressType || '0',
+            memo: settings?.invoices?.memo || '',
+            expiry: settings?.invoices?.expiry || '3600',
+            routeHints: settings?.invoices?.routeHints || false,
+            ampInvoice: settings?.invoices?.ampInvoice || false
         });
     }
 
@@ -110,19 +111,6 @@ export default class InvoicesSettings extends React.Component<
                   }
               ];
 
-        const BackButton = () => (
-            <Icon
-                name="arrow-back"
-                onPress={() => {
-                    navigation.navigate('Settings', {
-                        refresh: true
-                    });
-                }}
-                color={themeColor('text')}
-                underlayColor="transparent"
-            />
-        );
-
         const SettingsButton = () => (
             <Icon
                 name="settings"
@@ -135,7 +123,7 @@ export default class InvoicesSettings extends React.Component<
         return (
             <Screen>
                 <Header
-                    leftComponent={<BackButton />}
+                    leftComponent="Back"
                     centerComponent={{
                         text: localeString('views.Settings.Invoices.title'),
                         style: {
@@ -148,10 +136,7 @@ export default class InvoicesSettings extends React.Component<
                             <SettingsButton />
                         )
                     }
-                    backgroundColor="transparent"
-                    containerStyle={{
-                        borderBottomWidth: 0
-                    }}
+                    navigation={navigation}
                 />
                 <View
                     style={{

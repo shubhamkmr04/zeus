@@ -1,32 +1,36 @@
 import * as React from 'react';
-import { StyleSheet, ScrollView, View } from 'react-native';
-import { Header, Icon } from 'react-native-elements';
+import EncryptedStorage from 'react-native-encrypted-storage';
+import { StyleSheet, ScrollView, View, TouchableOpacity } from 'react-native';
+import { Icon, ListItem } from 'react-native-elements';
 import { inject, observer } from 'mobx-react';
 
-import Amount from './../components/Amount';
-import KeyValue from './../components/KeyValue';
-import Screen from './../components/Screen';
+import Amount from '../components/Amount';
+import Header from '../components/Header';
+import KeyValue from '../components/KeyValue';
+import Screen from '../components/Screen';
 
-import Payment from './../models/Payment';
-import PrivacyUtils from './../utils/PrivacyUtils';
-import { localeString } from './../utils/LocaleUtils';
-import { themeColor } from './../utils/ThemeUtils';
+import Payment from '../models/Payment';
+import { localeString } from '../utils/LocaleUtils';
+import { themeColor } from '../utils/ThemeUtils';
 
-import SettingsStore from './../stores/SettingsStore';
-import LnurlPayStore from './../stores/LnurlPayStore';
+import LnurlPayStore from '../stores/LnurlPayStore';
+
 import LnurlPayHistorical from './LnurlPay/Historical';
+
+import EditNotes from '../assets/images/SVG/Pen.svg';
+import Button from '../components/Button';
 
 interface PaymentProps {
     navigation: any;
-    SettingsStore: SettingsStore;
     LnurlPayStore: LnurlPayStore;
 }
 
-@inject('SettingsStore', 'LnurlPayStore')
+@inject('LnurlPayStore')
 @observer
 export default class PaymentView extends React.Component<PaymentProps> {
     state = {
-        lnurlpaytx: null
+        lnurlpaytx: null,
+        storedNotes: ''
     };
 
     async componentDidMount() {
@@ -36,13 +40,20 @@ export default class PaymentView extends React.Component<PaymentProps> {
         if (lnurlpaytx) {
             this.setState({ lnurlpaytx });
         }
+        navigation.addListener('didFocus', () => {
+            EncryptedStorage.getItem('note-' + payment.payment_hash)
+                .then((storedNotes) => {
+                    this.setState({ storedNotes });
+                })
+                .catch((error) => {
+                    console.error('Error retrieving notes:', error);
+                });
+        });
     }
 
     render() {
-        const { navigation, SettingsStore } = this.props;
-        const { settings } = SettingsStore;
-        const { privacy } = settings;
-        const lurkerMode = (privacy && privacy.lurkerMode) || false;
+        const { navigation } = this.props;
+        const { storedNotes } = this.state;
 
         const payment: Payment = navigation.getParam('payment', null);
         const {
@@ -55,21 +66,23 @@ export default class PaymentView extends React.Component<PaymentProps> {
         } = payment;
         const date = getDisplayTime;
 
-        const BackButton = () => (
-            <Icon
-                name="arrow-back"
-                onPress={() => navigation.goBack()}
-                color={themeColor('text')}
-                underlayColor="transparent"
-            />
-        );
-
         const lnurlpaytx = this.state.lnurlpaytx;
+
+        const EditNotesButton = () => (
+            <TouchableOpacity
+                onPress={() =>
+                    navigation.navigate('AddNotes', { payment_hash })
+                }
+                style={{ marginTop: -12 }}
+            >
+                <EditNotes height={40} width={40} />
+            </TouchableOpacity>
+        );
 
         return (
             <Screen>
                 <Header
-                    leftComponent={<BackButton />}
+                    leftComponent="Back"
                     centerComponent={{
                         text: localeString('views.Payment.title'),
                         style: {
@@ -77,10 +90,8 @@ export default class PaymentView extends React.Component<PaymentProps> {
                             fontFamily: 'Lato-Regular'
                         }
                     }}
-                    backgroundColor="transparent"
-                    containerStyle={{
-                        borderBottomWidth: 0
-                    }}
+                    rightComponent={<EditNotesButton />}
+                    navigation={navigation}
                 />
                 <ScrollView>
                     <View style={styles.center}>
@@ -137,33 +148,98 @@ export default class PaymentView extends React.Component<PaymentProps> {
                             />
                         )}
 
-                        <KeyValue
-                            keyValue={localeString(
-                                'views.Payment.paymentPreimage'
-                            )}
-                            value={getPreimage}
-                            sensitive
-                        />
+                        {getPreimage && (
+                            <KeyValue
+                                keyValue={localeString(
+                                    'views.Payment.paymentPreimage'
+                                )}
+                                value={getPreimage}
+                                sensitive
+                            />
+                        )}
 
-                        <KeyValue
-                            keyValue={localeString(
-                                'views.Payment.creationDate'
-                            )}
-                            value={date}
-                            sensitive
-                        />
+                        {date && (
+                            <KeyValue
+                                keyValue={localeString(
+                                    'views.Payment.creationDate'
+                                )}
+                                value={date}
+                                sensitive
+                            />
+                        )}
 
                         {enhancedPath.length > 0 && (
-                            <KeyValue
-                                keyValue={localeString('views.Payment.path')}
-                                value={
-                                    lurkerMode
-                                        ? PrivacyUtils.sensitiveValue(
-                                              enhancedPath.join(', ')
-                                          )
-                                        : `${enhancedPath}`
+                            <ListItem
+                                containerStyle={{
+                                    borderBottomWidth: 0,
+                                    backgroundColor: 'transparent',
+                                    marginLeft: -16,
+                                    marginRight: -16
+                                }}
+                                onPress={() =>
+                                    navigation.navigate('PaymentPaths', {
+                                        enhancedPath
+                                    })
                                 }
-                                sensitive
+                            >
+                                <ListItem.Content>
+                                    <ListItem.Title
+                                        style={{
+                                            color: themeColor('secondaryText'),
+                                            fontFamily: 'Lato-Regular'
+                                        }}
+                                    >
+                                        {enhancedPath.length > 1
+                                            ? `${localeString(
+                                                  'views.Payment.paths'
+                                              )} (${enhancedPath.length})`
+                                            : localeString(
+                                                  'views.Payment.path'
+                                              )}
+                                    </ListItem.Title>
+                                </ListItem.Content>
+                                <Icon
+                                    name="keyboard-arrow-right"
+                                    color={themeColor('secondaryText')}
+                                />
+                            </ListItem>
+                        )}
+                        {storedNotes && (
+                            <TouchableOpacity
+                                onPress={() =>
+                                    navigation.navigate('AddNotes', {
+                                        payment_hash
+                                    })
+                                }
+                            >
+                                <KeyValue
+                                    keyValue={localeString(
+                                        'views.Payment.notes'
+                                    )}
+                                    value={storedNotes}
+                                    sensitive
+                                />
+                            </TouchableOpacity>
+                        )}
+                        {payment_hash && (
+                            <Button
+                                title={
+                                    storedNotes
+                                        ? localeString(
+                                              'views.SendingLightning.UpdateNote'
+                                          )
+                                        : localeString(
+                                              'views.SendingLightning.AddANote'
+                                          )
+                                }
+                                onPress={() =>
+                                    navigation.navigate('AddNotes', {
+                                        payment_hash
+                                    })
+                                }
+                                containerStyle={{ marginTop: 15 }}
+                                secondary
+                                noUppercase
                             />
                         )}
                     </View>

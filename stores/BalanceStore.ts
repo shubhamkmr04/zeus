@@ -29,7 +29,6 @@ export default class BalanceStore {
     }
 
     reset = () => {
-        console.log('reset called');
         this.resetLightningBalance();
         this.resetBlockchainBalance();
         this.error = false;
@@ -99,7 +98,7 @@ export default class BalanceStore {
     };
 
     @action
-    public getLightningBalance = (set: boolean, reset: boolean) => {
+    public getLightningBalance = (set: boolean, reset?: boolean) => {
         this.loadingLightningBalance = true;
         if (reset) this.resetLightningBalance();
         return BackendUtils.getLightningBalance()

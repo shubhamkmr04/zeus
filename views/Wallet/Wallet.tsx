@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
     Animated,
     AppState,
+    BackHandler,
     Linking,
     PanResponder,
     Text,
@@ -10,7 +11,11 @@ import {
 } from 'react-native';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import {
+    DefaultTheme,
+    NavigationContainer,
+    NavigationContainerRef
+} from '@react-navigation/native';
 import { inject, observer } from 'mobx-react';
 import RNRestart from 'react-native-restart';
 
@@ -31,18 +36,15 @@ import { themeColor } from './../../utils/ThemeUtils';
 
 import BalanceStore from './../../stores/BalanceStore';
 import ChannelsStore from './../../stores/ChannelsStore';
-
 import FiatStore from './../../stores/FiatStore';
 import NodeInfoStore from './../../stores/NodeInfoStore';
 import PosStore from './../../stores/PosStore';
 import SettingsStore, { Settings } from './../../stores/SettingsStore';
 import UnitsStore from './../../stores/UnitsStore';
 import UTXOsStore from './../../stores/UTXOsStore';
+import ModalStore from './../../stores/ModalStore';
 
-import {
-    getIsBiometryRequired,
-    getSupportedBiometryType
-} from '../../utils/BiometricUtils';
+import { getSupportedBiometryType } from '../../utils/BiometricUtils';
 import Bitcoin from './../../assets/images/SVG/Bitcoin.svg';
 import CaretUp from './../../assets/images/SVG/Caret Up.svg';
 import ChannelsIcon from './../../assets/images/SVG/Channels.svg';
@@ -62,6 +64,7 @@ interface WalletProps {
     FiatStore: FiatStore;
     PosStore: PosStore;
     UTXOsStore: UTXOsStore;
+    ModalStore: ModalStore;
 }
 
 interface WalletState {
@@ -77,10 +80,13 @@ interface WalletState {
     'UnitsStore',
     'FiatStore',
     'PosStore',
-    'UTXOsStore'
+    'UTXOsStore',
+    'ModalStore'
 )
 @observer
 export default class Wallet extends React.Component<WalletProps, WalletState> {
+    private tabNavigationRef = React.createRef<NavigationContainerRef<any>>();
+
     constructor(props) {
         super(props);
         this.state = {
@@ -103,6 +109,7 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
             }
         });
     }
+
     async UNSAFE_componentWillMount(): Promise<void> {
         const {
             SettingsStore: { updateSettings }
@@ -113,6 +120,45 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
         await updateSettings({ supportedBiometryType });
     }
 
+    private handleBackButton() {
+        const dialogHasBeenClosed =
+            this.props.ModalStore.closeVisibleModalDialog();
+        if (dialogHasBeenClosed) {
+            return true;
+        }
+
+        if (this.props.SettingsStore.loginRequired()) {
+            // pop to close lock screen and return false to close the app
+            this.props.navigation.pop();
+            return false;
+        }
+
+        if (this.props.navigation.pop()) {
+            return true;
+        }
+
+        const tabNavigator = this.tabNavigationRef.current;
+        if (!tabNavigator) {
+            return false;
+        }
+        const tabNavigatorState = tabNavigator.getState();
+        if (!tabNavigatorState) {
+            return false;
+        }
+        const currentTabName =
+            tabNavigatorState.routeNames[tabNavigatorState.index];
+        const defaultView =
+            this.props.SettingsStore.settings.display.defaultView;
+
+        if (defaultView === currentTabName || currentTabName === 'POS') {
+            return false;
+        } else if (defaultView) {
+            tabNavigator.navigate(defaultView);
+            return true;
+        }
+        return false;
+    }
+
     async componentDidMount() {
         // triggers when loaded from navigation or back action
         this.props.navigation.addListener('didFocus', () => {
@@ -120,6 +166,10 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
         });
 
         AppState.addEventListener('change', this.handleAppStateChange);
+        BackHandler.addEventListener(
+            'hardwareBackPress',
+            this.handleBackButton.bind(this)
+        );
     }
 
     componentWillUnmount() {
@@ -127,24 +177,29 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
             this.props.navigation.removeListener('didFocus');
         AppState.removeEventListener &&
             AppState.removeEventListener('change', this.handleAppStateChange);
+        BackHandler.removeEventListener(
+            'hardwareBackPress',
+            this.handleBackButton
+        );
     }
 
     handleAppStateChange = (nextAppState: any) => {
         const { SettingsStore } = this.props;
-        const { settings, implementation } = SettingsStore;
+        const { settings } = SettingsStore;
         const { loginBackground } = settings;
-        const loginRequired =
-            settings &&
-            (!!settings.passphrase ||
-                !!settings.pin ||
-                settings.isBiometryEnabled);
 
-        if (nextAppState === 'background' && loginRequired && loginBackground) {
-            if (implementation === 'lightning-node-connect') {
-                BackendUtils.disconnect();
-            }
-
-            RNRestart.Restart();
+        if (
+            nextAppState === 'background' &&
+            SettingsStore.loginMethodConfigured() &&
+            loginBackground
+        ) {
+            // In case the lock screen is visible and a valid PIN is entered and home button is pressed,
+            // unauthorized access would be possible because the PIN is not cleared on next launch.
+            // By calling pop, the lock screen is closed to clear the PIN.
+            this.props.navigation.pop();
+            SettingsStore.setLoginStatus(false);
+        } else if (nextAppState === 'active' && SettingsStore.loginRequired()) {
+            this.props.navigation.navigate('Lockscreen');
         }
     };
 
@@ -158,12 +213,7 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
 
         // This awaits on settings, so should await on Tor being bootstrapped before making requests
         await SettingsStore.getSettings().then(async (settings: Settings) => {
-            const isBiometryRequired = getIsBiometryRequired(settings);
-
-            const loginRequired =
-                settings &&
-                (settings.passphrase || settings.pin || isBiometryRequired) &&
-                !SettingsStore.loggedIn;
+            const loginRequired = SettingsStore.loginRequired();
             const posEnabled =
                 settings && settings.pos && settings.pos.squareEnabled;
 
@@ -172,7 +222,7 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
             if (posEnabled && posStatus === 'inactive' && loginRequired) {
                 navigation.navigate('Lockscreen');
             } else if (posEnabled && posStatus === 'unselected') {
-                await setPosStatus('active');
+                setPosStatus('active');
                 if (!this.state.unlocked) {
                     this.startListeners();
                     this.setState({ unlocked: true });
@@ -230,12 +280,12 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
             connect,
             posStatus
         } = SettingsStore;
-        const { fiat, pos } = settings;
+        const { fiatEnabled, pos } = settings;
 
         if (pos && pos.squareEnabled && posStatus === 'active')
             PosStore.getOrders();
 
-        if (!!fiat && fiat !== 'Disabled') {
+        if (fiatEnabled) {
             FiatStore.getFiatRates();
         }
 
@@ -244,6 +294,8 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
                 await login({ login: username, password }).then(async () => {
                     BalanceStore.getLightningBalance(true);
                 });
+            } else {
+                BalanceStore.getLightningBalance(true);
             }
         } else if (implementation === 'lightning-node-connect') {
             let error;
@@ -301,12 +353,7 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
         const error = NodeInfoStore.error || SettingsStore.error;
         const { implementation, settings, loggedIn, connecting, posStatus } =
             SettingsStore;
-        const loginRequired =
-            !settings ||
-            (settings &&
-                (settings.passphrase || settings.pin) &&
-                !loggedIn &&
-                settings.pos);
+        const loginRequired = !settings || SettingsStore.loginRequired();
 
         const squareEnabled: boolean =
             (settings && settings.pos && settings.pos.squareEnabled) || false;
@@ -416,7 +463,10 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
         return (
             <View style={{ flex: 1 }}>
                 {!connecting && (!loginRequired || squareEnabled) && (
-                    <NavigationContainer theme={Theme}>
+                    <NavigationContainer
+                        theme={Theme}
+                        ref={this.tabNavigationRef}
+                    >
                         <Tab.Navigator
                             initialRouteName={
                                 squareEnabled && posStatus === 'active'
@@ -425,6 +475,7 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
                                           settings.display.defaultView) ||
                                       'Keypad'
                             }
+                            backBehavior="none"
                             screenOptions={({ route }) => ({
                                 tabBarIcon: ({ color }) => {
                                     if (route.name === 'Keypad') {
@@ -453,9 +504,7 @@ export default class Wallet extends React.Component<WalletProps, WalletState> {
                                     : themeColor('text'),
                                 inactiveTintColor: error
                                     ? themeColor('error')
-                                    : BackendUtils.supportsChannelManagement()
-                                    ? 'gray'
-                                    : themeColor('secondaryText'),
+                                    : 'gray',
                                 showLabel: false
                             }}
                         >

@@ -6,10 +6,12 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { Button, Header, Icon, ListItem } from 'react-native-elements';
+import { Button, Icon, ListItem } from 'react-native-elements';
 import { inject, observer } from 'mobx-react';
+import BigNumber from 'bignumber.js';
 
 import Amount from '../../components/Amount';
+import Header from '../../components/Header';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import Screen from '../../components/Screen';
 
@@ -18,21 +20,37 @@ import BackendUtils from '../../utils/BackendUtils';
 import { themeColor } from '../../utils/ThemeUtils';
 
 import ActivityStore from '../../stores/ActivityStore';
+import FiatStore from '../../stores/FiatStore';
+import PosStore from '../../stores/PosStore';
 import SettingsStore from '../../stores/SettingsStore';
+import { SATS_PER_BTC } from '../../stores/UnitsStore';
 
 import Filter from '../../assets/images/SVG/Filter On.svg';
 
 interface ActivityProps {
     navigation: any;
     ActivityStore: ActivityStore;
+    FiatStore: FiatStore;
+    PosStore: PosStore;
     SettingsStore: SettingsStore;
 }
 
-@inject('ActivityStore', 'SettingsStore')
+interface ActivityState {
+    selectedPaymentForOrder: any;
+}
+
+@inject('ActivityStore', 'FiatStore', 'PosStore', 'SettingsStore')
 @observer
-export default class Activity extends React.Component<ActivityProps, {}> {
+export default class Activity extends React.PureComponent<
+    ActivityProps,
+    ActivityState
+> {
     transactionListener: any;
     invoicesListener: any;
+
+    state = {
+        selectedPaymentForOrder: null
+    };
 
     async UNSAFE_componentWillMount() {
         const { ActivityStore, SettingsStore } = this.props;
@@ -112,15 +130,79 @@ export default class Activity extends React.Component<ActivityProps, {}> {
     };
 
     render() {
-        const { navigation, ActivityStore } = this.props;
+        const {
+            navigation,
+            ActivityStore,
+            FiatStore,
+            PosStore,
+            SettingsStore
+        } = this.props;
+        const { selectedPaymentForOrder } = this.state;
         const { loading, filteredActivity, getActivityAndFilter } =
             ActivityStore;
+        const { recordPayment } = PosStore;
+        const { settings } = SettingsStore;
+        const { fiat } = settings;
 
-        const CloseButton = () => (
+        const order = navigation.getParam('order', null);
+
+        const MarkPaymentButton = () => (
             <Icon
-                name="arrow-back"
-                onPress={() => navigation.navigate('Wallet')}
-                color={themeColor('text')}
+                name="payments"
+                onPress={() => {
+                    if (!order || !selectedPaymentForOrder) return;
+                    const payment: any = selectedPaymentForOrder;
+                    /*
+                    missing fields for recovered payment
+                        orderTip,
+                    */
+
+                    const orderTotal = payment.payment_request
+                        ? payment.amt_paid_sat.toString()
+                        : payment.amount;
+
+                    const orderItem = order.item;
+                    const fiatAmount = new BigNumber(
+                        orderItem.total_money.amount
+                    ).div(100);
+
+                    const rate = fiatAmount
+                        .div(orderTotal)
+                        .multipliedBy(SATS_PER_BTC)
+                        .toFixed(3);
+
+                    const fiatEntry = FiatStore.fiatRates.filter(
+                        (entry: any) => entry.code === fiat
+                    )[0];
+
+                    const { symbol, space, rtl, separatorSwap } =
+                        FiatStore.symbolLookup(fiatEntry && fiatEntry.code);
+
+                    const formattedRate = separatorSwap
+                        ? FiatStore.numberWithDecimals(rate)
+                        : FiatStore.numberWithCommas(rate);
+
+                    const exchangeRate = rtl
+                        ? `${formattedRate}${
+                              space ? ' ' : ''
+                          }${symbol} BTC/${fiat}`
+                        : `${symbol}${
+                              space ? ' ' : ''
+                          }${formattedRate} BTC/${fiat}`;
+
+                    recordPayment({
+                        orderId: order.item.id,
+                        type: payment.payment_request ? 'ln' : 'onchain',
+                        tx: payment.tx_hash || payment.payment_request,
+                        orderTotal,
+                        orderTip: '0',
+                        exchangeRate,
+                        rate: Number(rate)
+                    }).then(() => {
+                        navigation.goBack();
+                    });
+                }}
+                color={themeColor('highlight')}
                 underlayColor="transparent"
             />
         );
@@ -136,7 +218,7 @@ export default class Activity extends React.Component<ActivityProps, {}> {
         return (
             <Screen>
                 <Header
-                    leftComponent={<CloseButton />}
+                    leftComponent="Close"
                     centerComponent={{
                         text: localeString('general.activity'),
                         style: {
@@ -144,11 +226,16 @@ export default class Activity extends React.Component<ActivityProps, {}> {
                             fontFamily: 'Lato-Regular'
                         }
                     }}
-                    rightComponent={<FilterButton />}
-                    backgroundColor="transparent"
-                    containerStyle={{
-                        borderBottomWidth: 0
-                    }}
+                    rightComponent={
+                        order ? (
+                            selectedPaymentForOrder ? (
+                                <MarkPaymentButton />
+                            ) : null
+                        ) : (
+                            <FilterButton />
+                        )
+                    }
+                    navigation={navigation}
                 />
                 {loading ? (
                     <View style={{ padding: 50 }}>
@@ -171,23 +258,17 @@ export default class Activity extends React.Component<ActivityProps, {}> {
                                       );
                                 subTitle = `${
                                     item.isPaid
-                                        ? item.isLnurlP
-                                            ? 'LNURLp'
-                                            : localeString('general.lightning')
-                                        : `${
-                                              item.isLnurlP
-                                                  ? 'LNURLp'
-                                                  : localeString(
-                                                        'general.lightning'
-                                                    )
-                                          }: ${
+                                        ? localeString('general.lightning')
+                                        : `${localeString(
+                                              'views.PaymentRequest.title'
+                                          )}: ${
                                               item.isExpired
                                                   ? localeString(
                                                         'views.Activity.expired'
                                                     )
                                                   : item.expirationDate
                                           }`
-                                }${item.getMemo ? `: ${item.getMemo}` : ''}`;
+                                }${item.memo ? `: ${item.memo}` : ''}`;
                             }
 
                             if (
@@ -197,9 +278,9 @@ export default class Activity extends React.Component<ActivityProps, {}> {
                                 displayName = localeString(
                                     'views.Activity.youSent'
                                 );
-                                subTitle = item.getMemo
+                                subTitle = item.memo
                                     ? `${localeString('general.lightning')}: ${
-                                          item.getMemo
+                                          item.memo
                                       }`
                                     : localeString('general.lightning');
                             }
@@ -240,6 +321,23 @@ export default class Activity extends React.Component<ActivityProps, {}> {
                                             backgroundColor: 'transparent'
                                         }}
                                         onPress={() => {
+                                            if (order) {
+                                                if (
+                                                    selectedPaymentForOrder ===
+                                                    item
+                                                ) {
+                                                    this.setState({
+                                                        selectedPaymentForOrder:
+                                                            null
+                                                    });
+                                                } else {
+                                                    this.setState({
+                                                        selectedPaymentForOrder:
+                                                            item
+                                                    });
+                                                }
+                                                return;
+                                            }
                                             if (
                                                 item.model ===
                                                 localeString(
@@ -282,7 +380,15 @@ export default class Activity extends React.Component<ActivityProps, {}> {
                                                 right
                                                 style={{
                                                     fontWeight: '600',
-                                                    color: themeColor('text'),
+                                                    color:
+                                                        item ===
+                                                        selectedPaymentForOrder
+                                                            ? themeColor(
+                                                                  'highlight'
+                                                              )
+                                                            : themeColor(
+                                                                  'text'
+                                                              ),
                                                     fontFamily: 'Lato-Regular'
                                                 }}
                                             >
@@ -291,9 +397,15 @@ export default class Activity extends React.Component<ActivityProps, {}> {
                                             <ListItem.Subtitle
                                                 right
                                                 style={{
-                                                    color: themeColor(
-                                                        'secondaryText'
-                                                    ),
+                                                    color:
+                                                        item ===
+                                                        selectedPaymentForOrder
+                                                            ? themeColor(
+                                                                  'highlight'
+                                                              )
+                                                            : themeColor(
+                                                                  'secondaryText'
+                                                              ),
                                                     fontFamily: 'Lato-Regular'
                                                 }}
                                             >
@@ -317,7 +429,9 @@ export default class Activity extends React.Component<ActivityProps, {}> {
                                                     fontFamily: 'Lato-Regular'
                                                 }}
                                             >
-                                                {item.getDisplayTimeShort}
+                                                {order
+                                                    ? item.getDisplayTimeOrder
+                                                    : item.getDisplayTimeShort}
                                             </ListItem.Subtitle>
                                         </ListItem.Content>
                                     </ListItem>
@@ -329,6 +443,9 @@ export default class Activity extends React.Component<ActivityProps, {}> {
                         onEndReachedThreshold={50}
                         refreshing={loading}
                         onRefresh={() => getActivityAndFilter()}
+                        initialNumToRender={10}
+                        maxToRenderPerBatch={5}
+                        windowSize={10}
                     />
                 ) : (
                     <Button

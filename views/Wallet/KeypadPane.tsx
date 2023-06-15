@@ -59,6 +59,10 @@ export default class KeypadPane extends React.PureComponent<
             if (amount.split('.')[1] && amount.split('.')[1].length == 3)
                 return this.startShake();
         }
+        if (units === 'BTC') {
+            if (amount.split('.')[1] && amount.split('.')[1].length == 8)
+                return this.startShake();
+        }
 
         if (amount.length >= MAX_LENGTH) {
             newAmount = amount;
@@ -103,21 +107,16 @@ export default class KeypadPane extends React.PureComponent<
             case 1:
             case 2:
                 return 80;
-                break;
             case 3:
             case 4:
                 return 65;
-                break;
             case 5:
             case 6:
                 return 55;
-                break;
             case 7:
                 return 50;
-                break;
             case 8:
                 return 45;
-                break;
             default:
                 return 35;
         }

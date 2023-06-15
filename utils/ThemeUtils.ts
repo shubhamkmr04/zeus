@@ -177,7 +177,7 @@ export function themeColor(themeString: string): any {
         background: '#4C09F4',
         secondary: '#141414',
         separator: '#141414',
-        highlight: '#fff',
+        highlight: '#ffd24b',
         bolt: '#fff',
         chain: '#fff'
     };
@@ -203,7 +203,7 @@ export function themeColor(themeString: string): any {
             '#582688'
         ],
         generalStyle: 'dark',
-        background: '#000',
+        background: '#582688',
         secondary: '#141414',
         separator: '#141414'
     };
@@ -227,7 +227,8 @@ export function themeColor(themeString: string): any {
         generalStyle: 'dark',
         background: '#FF6200',
         secondary: '#141414',
-        separator: '#141414'
+        separator: '#141414',
+        secondaryText: '#FFFFFF'
     };
 
     const Mint: { [key: string]: any } = {
@@ -241,15 +242,17 @@ export function themeColor(themeString: string): any {
         ],
         generalStyle: 'dark',
         background: '#46B48A',
-        secondary: '#141414',
         secondaryText: '#FFFDF2',
-        separator: '#141414'
+        separator: '#141414',
+        highlight: '#fff',
+        bolt: '#fff',
+        chain: '#fff'
     };
 
     const RedMetallic: { [key: string]: any } = {
         gradientBackground: ['#961E1E', '#A72F2F', '#B94A4A'],
         generalStyle: 'dark',
-        background: '#961E1E',
+        background: '#B94A4A',
         secondary: '#141414',
         separator: '#141414'
     };

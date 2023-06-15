@@ -1,4 +1,5 @@
 import * as React from 'react';
+import EncryptedStorage from 'react-native-encrypted-storage';
 import forEach from 'lodash/forEach';
 import isNull from 'lodash/isNull';
 import {
@@ -8,11 +9,11 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { Header, Icon } from 'react-native-elements';
 import { inject, observer } from 'mobx-react';
 
 import Amount from '../components/Amount';
 import Button from '../components/Button';
+import Header from '../components/Header';
 import KeyValue from '../components/KeyValue';
 import Screen from '../components/Screen';
 
@@ -25,6 +26,8 @@ import NodeInfoStore from '../stores/NodeInfoStore';
 import { localeString } from '../utils/LocaleUtils';
 import { themeColor } from '../utils/ThemeUtils';
 
+import EditNotes from '../assets/images/SVG/Pen.svg';
+
 interface TransactionProps {
     navigation: any;
     NodeInfoStore: NodeInfoStore;
@@ -33,12 +36,32 @@ interface TransactionProps {
 @inject('NodeInfoStore')
 @observer
 export default class TransactionView extends React.Component<TransactionProps> {
+    state = {
+        storedNotes: ''
+    };
+    async componentDidMount() {
+        const { navigation } = this.props;
+        const transaction: Transaction = navigation.getParam(
+            'transaction',
+            null
+        );
+        navigation.addListener('didFocus', () => {
+            EncryptedStorage.getItem('note-' + transaction.tx)
+                .then((storedNotes) => {
+                    this.setState({ storedNotes });
+                })
+                .catch((error) => {
+                    console.error('Error retrieving notes:', error);
+                });
+        });
+    }
     render() {
         const { NodeInfoStore, navigation } = this.props;
         const transaction: Transaction = navigation.getParam(
             'transaction',
             null
         );
+        const { storedNotes } = this.state;
         const { testnet } = NodeInfoStore;
 
         const {
@@ -96,20 +119,19 @@ export default class TransactionView extends React.Component<TransactionProps> {
                 />
             )
         );
-
-        const BackButton = () => (
-            <Icon
-                name="arrow-back"
-                onPress={() => navigation.goBack()}
-                color={themeColor('text')}
-                underlayColor="transparent"
-            />
+        const EditNotesButton = () => (
+            <TouchableOpacity
+                onPress={() => navigation.navigate('AddNotes', { txid: tx })}
+                style={{ marginTop: -12 }}
+            >
+                <EditNotes height={40} width={40} />
+            </TouchableOpacity>
         );
 
         return (
             <Screen>
                 <Header
-                    leftComponent={<BackButton />}
+                    leftComponent="Back"
                     centerComponent={{
                         text: localeString('views.Transaction.title'),
                         style: {
@@ -117,10 +139,8 @@ export default class TransactionView extends React.Component<TransactionProps> {
                             fontFamily: 'Lato-Regular'
                         }
                     }}
-                    backgroundColor="transparent"
-                    containerStyle={{
-                        borderBottomWidth: 0
-                    }}
+                    rightComponent={EditNotesButton}
+                    navigation={navigation}
                 />
                 <View style={styles.center}>
                     <Amount
@@ -260,6 +280,19 @@ export default class TransactionView extends React.Component<TransactionProps> {
                     {!!destAddresses && (
                         <React.Fragment>{addresses}</React.Fragment>
                     )}
+                    {storedNotes && (
+                        <TouchableOpacity
+                            onPress={() =>
+                                navigation.navigate('AddNotes', { txid: tx })
+                            }
+                        >
+                            <KeyValue
+                                keyValue={localeString('views.Payment.notes')}
+                                value={storedNotes}
+                                sensitive
+                            />
+                        </TouchableOpacity>
+                    )}
 
                     {!isConfirmed && BackendUtils.supportsBumpFee() && (
                         <View style={{ marginTop: 20 }}>
@@ -273,6 +306,25 @@ export default class TransactionView extends React.Component<TransactionProps> {
                                 noUppercase
                             />
                         </View>
+                    )}
+                    {tx && (
+                        <Button
+                            title={
+                                storedNotes
+                                    ? localeString(
+                                          'views.SendingLightning.UpdateNote'
+                                      )
+                                    : localeString(
+                                          'views.SendingLightning.AddANote'
+                                      )
+                            }
+                            onPress={() =>
+                                navigation.navigate('AddNotes', { txid: tx })
+                            }
+                            containerStyle={{ marginTop: 20 }}
+                            secondary
+                            noUppercase
+                        />
                     )}
                 </ScrollView>
             </Screen>

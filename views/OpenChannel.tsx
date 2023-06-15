@@ -10,51 +10,51 @@ import {
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { inject, observer } from 'mobx-react';
-import { Header, Icon } from 'react-native-elements';
-import NfcManager, { NfcEvents } from 'react-native-nfc-manager';
+import NfcManager, { NfcEvents, TagEvent } from 'react-native-nfc-manager';
 
 import Amount from './../components/Amount';
+import AmountInput from './../components/AmountInput';
 import Button from './../components/Button';
+import Header from '../components/Header';
 import LightningIndicator from './../components/LightningIndicator';
 import Screen from './../components/Screen';
 import {
     SuccessMessage,
     ErrorMessage
-} from './../components/SuccessErrorMessage';
-import Switch from './../components/Switch';
-import TextInput from './../components/TextInput';
-import UTXOPicker from './../components/UTXOPicker';
+} from '../components/SuccessErrorMessage';
+import Switch from '../components/Switch';
+import TextInput from '../components/TextInput';
+import UTXOPicker from '../components/UTXOPicker';
 
-import handleAnything from './../utils/handleAnything';
-import NFCUtils from './../utils/NFCUtils';
-import NodeUriUtils from './../utils/NodeUriUtils';
-import BackendUtils from './../utils/BackendUtils';
-import { localeString } from './../utils/LocaleUtils';
-import { themeColor } from './../utils/ThemeUtils';
+import handleAnything from '../utils/handleAnything';
+import NFCUtils from '../utils/NFCUtils';
+import NodeUriUtils from '../utils/NodeUriUtils';
+import BackendUtils from '../utils/BackendUtils';
+import { localeString } from '../utils/LocaleUtils';
+import { themeColor } from '../utils/ThemeUtils';
 
 import BalanceStore from './../stores/BalanceStore';
 import ChannelsStore from './../stores/ChannelsStore';
-import FiatStore from './../stores/FiatStore';
+import ModalStore from './../stores/ModalStore';
 import SettingsStore from './../stores/SettingsStore';
-import UnitsStore, { SATS_PER_BTC } from './../stores/UnitsStore';
 import UTXOsStore from './../stores/UTXOsStore';
 
-import Scan from './../assets/images/SVG/Scan.svg';
+import Scan from '../assets/images/SVG/Scan.svg';
 
 interface OpenChannelProps {
     exitSetup: any;
     navigation: any;
-    ChannelsStore: ChannelsStore;
     BalanceStore: BalanceStore;
-    FiatStore: FiatStore;
+    ChannelsStore: ChannelsStore;
+    ModalStore: ModalStore;
     SettingsStore: SettingsStore;
-    UnitsStore: UnitsStore;
     UTXOsStore: UTXOsStore;
 }
 
 interface OpenChannelState {
     node_pubkey_string: string;
     local_funding_amount: string;
+    satAmount: string | number;
     min_confs: number;
     spend_unconfirmed: boolean;
     sat_per_byte: string;
@@ -67,11 +67,10 @@ interface OpenChannelState {
 }
 
 @inject(
-    'ChannelsStore',
-    'FiatStore',
-    'SettingsStore',
     'BalanceStore',
-    'UnitsStore',
+    'ChannelsStore',
+    'ModalStore',
+    'SettingsStore',
     'UTXOsStore'
 )
 @observer
@@ -84,6 +83,7 @@ export default class OpenChannel extends React.Component<
         this.state = {
             node_pubkey_string: '',
             local_funding_amount: '',
+            satAmount: '',
             min_confs: 1,
             spend_unconfirmed: false,
             sat_per_byte: '2',
@@ -115,10 +115,6 @@ export default class OpenChannel extends React.Component<
 
     async componentDidMount() {
         this.initFromProps(this.props);
-
-        if (Platform.OS === 'android') {
-            await this.enableNfc();
-        }
     }
 
     disableNfc = () => {
@@ -127,21 +123,40 @@ export default class OpenChannel extends React.Component<
     };
 
     enableNfc = async () => {
+        const { ModalStore } = this.props;
         this.disableNfc();
         await NfcManager.start();
 
         return new Promise((resolve: any) => {
-            let tagFound = null;
+            let tagFound: TagEvent | null = null;
 
-            NfcManager.setEventListener(NfcEvents.DiscoverTag, (tag: any) => {
-                tagFound = tag;
-                const bytes = new Uint8Array(tagFound.ndefMessage[0].payload);
-                const str = NFCUtils.nfcUtf8ArrayToStr(bytes);
-                resolve(this.validateNodeUri(str));
-                NfcManager.unregisterTagEvent().catch(() => 0);
-            });
+            // enable NFC
+            if (Platform.OS === 'android')
+                ModalStore.toggleAndroidNfcModal(true);
+
+            NfcManager.setEventListener(
+                NfcEvents.DiscoverTag,
+                (tag: TagEvent) => {
+                    tagFound = tag;
+                    const bytes = new Uint8Array(
+                        tagFound.ndefMessage[0].payload
+                    );
+                    const str = NFCUtils.nfcUtf8ArrayToStr(bytes) || '';
+
+                    // close NFC
+                    if (Platform.OS === 'android')
+                        ModalStore.toggleAndroidNfcModal(false);
+
+                    resolve(this.validateNodeUri(str));
+                    NfcManager.unregisterTagEvent().catch(() => 0);
+                }
+            );
 
             NfcManager.setEventListener(NfcEvents.SessionClosed, () => {
+                // close NFC
+                if (Platform.OS === 'android')
+                    ModalStore.toggleAndroidNfcModal(false);
+
                 if (!tagFound) {
                     resolve();
                 }
@@ -223,8 +238,6 @@ export default class OpenChannel extends React.Component<
         const {
             ChannelsStore,
             BalanceStore,
-            FiatStore,
-            UnitsStore,
             UTXOsStore,
             SettingsStore,
             navigation
@@ -232,6 +245,7 @@ export default class OpenChannel extends React.Component<
         const {
             node_pubkey_string,
             local_funding_amount,
+            satAmount,
             min_confs,
             host,
             sat_per_byte,
@@ -241,9 +255,7 @@ export default class OpenChannel extends React.Component<
             scidAlias
         } = this.state;
         const { implementation, settings } = SettingsStore;
-        const { fiatRates, getSymbol } = FiatStore;
-        const { units, changeUnits } = UnitsStore;
-        const { fiat, privacy } = settings;
+        const { privacy } = settings;
         const enableMempoolRates = privacy && privacy.enableMempoolRates;
 
         const {
@@ -257,43 +269,6 @@ export default class OpenChannel extends React.Component<
         } = ChannelsStore;
         const { confirmedBlockchainBalance } = BalanceStore;
 
-        const fiatEntry =
-            fiat && fiatRates && fiatRates.filter
-                ? fiatRates.filter((entry: any) => entry.code === fiat)[0]
-                : null;
-
-        const rate =
-            fiat && fiat !== 'Disabled' && fiatRates && fiatEntry
-                ? fiatEntry.rate
-                : 0;
-
-        // conversion
-        let satAmount: string | number;
-        switch (units) {
-            case 'sats':
-                satAmount = local_funding_amount;
-                break;
-            case 'BTC':
-                satAmount = Number(local_funding_amount) * SATS_PER_BTC;
-                break;
-            case 'fiat':
-                satAmount = Number(
-                    (Number(local_funding_amount.replace(/,/g, '.')) /
-                        Number(rate)) *
-                        Number(SATS_PER_BTC)
-                ).toFixed(0);
-                break;
-        }
-
-        const BackButton = () => (
-            <Icon
-                name="arrow-back"
-                onPress={() => navigation.navigate('Wallet')}
-                color={themeColor('text')}
-                underlayColor="transparent"
-            />
-        );
-
         const ScanButton = () => (
             <TouchableOpacity
                 onPress={() => navigation.navigate('NodeQRCodeScanner')}
@@ -305,7 +280,7 @@ export default class OpenChannel extends React.Component<
         return (
             <Screen>
                 <Header
-                    leftComponent={<BackButton />}
+                    leftComponent="Back"
                     centerComponent={{
                         text: localeString('views.OpenChannel.openChannel'),
                         style: {
@@ -313,11 +288,8 @@ export default class OpenChannel extends React.Component<
                             fontFamily: 'Lato-Regular'
                         }
                     }}
-                    rightComponent={<ScanButton />}
-                    backgroundColor="transparent"
-                    containerStyle={{
-                        borderBottomWidth: 0
-                    }}
+                    rightComponent={ScanButton}
+                    navigation={navigation}
                 />
                 <ScrollView
                     style={{
@@ -418,78 +390,20 @@ export default class OpenChannel extends React.Component<
                             locked={openingChannel}
                         />
 
-                        <Text
-                            style={{
-                                ...styles.secondaryText,
-                                color: themeColor('secondaryText')
+                        <AmountInput
+                            amount={local_funding_amount}
+                            title={localeString('views.OpenChannel.localAmt')}
+                            onAmountChange={(
+                                amount: string,
+                                satAmount: string | number
+                            ) => {
+                                this.setState({
+                                    local_funding_amount: amount,
+                                    satAmount
+                                });
                             }}
-                        >
-                            {localeString('views.OpenChannel.localAmt')}
-                        </Text>
-                        <TextInput
-                            keyboardType="numeric"
-                            value={local_funding_amount}
-                            onChangeText={(text: string) =>
-                                this.setState({ local_funding_amount: text })
-                            }
-                            locked={openingChannel}
-                            prefix={
-                                units !== 'sats' &&
-                                (units === 'BTC'
-                                    ? '₿'
-                                    : !getSymbol().rtl
-                                    ? getSymbol().symbol
-                                    : null)
-                            }
-                            suffix={
-                                units === 'sats'
-                                    ? units
-                                    : getSymbol().rtl &&
-                                      units === 'fiat' &&
-                                      getSymbol().symbol
-                            }
-                            toggleUnits={changeUnits}
+                            hideConversion={local_funding_amount === 'all'}
                         />
-                        {local_funding_amount !== 'all' && (
-                            <View style={{ marginBottom: 10 }}>
-                                {fiat !== 'Disabled' && units !== 'fiat' && (
-                                    <Amount
-                                        sats={satAmount}
-                                        fixedUnits="fiat"
-                                        toggleable
-                                    />
-                                )}
-                                {fiat !== 'Disabled' && (
-                                    <TouchableOpacity
-                                        onPress={() => changeUnits()}
-                                    >
-                                        <Text
-                                            style={{
-                                                color: themeColor('text')
-                                            }}
-                                        >
-                                            {FiatStore.getRate(
-                                                units === 'sats'
-                                            )}
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                                {units !== 'sats' && (
-                                    <Amount
-                                        sats={satAmount}
-                                        fixedUnits="sats"
-                                        toggleable
-                                    />
-                                )}
-                                {units !== 'BTC' && (
-                                    <Amount
-                                        sats={satAmount}
-                                        fixedUnits="BTC"
-                                        toggleable
-                                    />
-                                )}
-                            </View>
-                        )}
 
                         {local_funding_amount === 'all' && (
                             <View style={{ marginBottom: 20 }}>
@@ -650,19 +564,17 @@ export default class OpenChannel extends React.Component<
                             />
                         </View>
 
-                        {Platform.OS === 'ios' && (
-                            <View style={styles.button}>
-                                <Button
-                                    title={localeString('general.enableNfc')}
-                                    icon={{
-                                        name: 'nfc',
-                                        size: 25
-                                    }}
-                                    onPress={() => this.enableNfc()}
-                                    secondary
-                                />
-                            </View>
-                        )}
+                        <View style={styles.button}>
+                            <Button
+                                title={localeString('general.enableNfc')}
+                                icon={{
+                                    name: 'nfc',
+                                    size: 25
+                                }}
+                                onPress={() => this.enableNfc()}
+                                secondary
+                            />
+                        </View>
                     </View>
                 </ScrollView>
             </Screen>

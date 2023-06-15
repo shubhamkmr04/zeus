@@ -1,16 +1,9 @@
 import * as React from 'react';
-import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-    TouchableOpacity
-} from 'react-native';
+import EncryptedStorage from 'react-native-encrypted-storage';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { inject, observer } from 'mobx-react';
 
 import Button from '../components/Button';
-import CopyButton from '../components/CopyButton';
 import LoadingIndicator from '../components/LoadingIndicator';
 import Screen from '../components/Screen';
 
@@ -24,6 +17,7 @@ import TransactionsStore from '../stores/TransactionsStore';
 import Error from '../assets/images/SVG/Error.svg';
 import Success from '../assets/images/GIF/Success.gif';
 import WordLogo from '../assets/images/SVG/Word Logo.svg';
+import CopyBox from '../components/CopyBox';
 
 interface SendingOnChainProps {
     navigation: any;
@@ -37,20 +31,36 @@ export default class SendingOnChain extends React.Component<
     SendingOnChainProps,
     {}
 > {
+    state = {
+        storedNotes: ''
+    };
+    async componentDidMount() {
+        const { TransactionsStore, navigation } = this.props;
+        navigation.addListener('didFocus', () => {
+            EncryptedStorage.getItem('note-' + TransactionsStore.txid)
+                .then((storedNotes) => {
+                    this.setState({ storedNotes });
+                })
+                .catch((error) => {
+                    console.error('Error retrieving notes:', error);
+                });
+        });
+    }
     render() {
         const { NodeInfoStore, TransactionsStore, navigation } = this.props;
         const { loading, publishSuccess, error, error_msg, txid } =
             TransactionsStore;
         const { testnet } = NodeInfoStore;
+        const { storedNotes } = this.state;
 
         return (
             <Screen>
-                <View
-                    style={{
-                        ...styles.content
-                    }}
-                >
-                    <ScrollView>
+                <ScrollView>
+                    <View
+                        style={{
+                            ...styles.content
+                        }}
+                    >
                         {loading && <LoadingIndicator />}
                         {loading && (
                             <Text
@@ -124,41 +134,65 @@ export default class SendingOnChain extends React.Component<
                             </Text>
                         )}
                         {txid && (
-                            <TouchableOpacity
-                                onPress={() =>
-                                    UrlUtils.goToBlockExplorerTXID(
-                                        txid,
-                                        testnet
-                                    )
-                                }
-                            >
-                                <Text
-                                    style={{
-                                        ...styles.text,
-                                        color: themeColor('text'),
-                                        padding: 20,
-                                        fontSize: 15
-                                    }}
-                                >
-                                    {`${localeString(
+                            <View style={{ padding: 20 }}>
+                                <CopyBox
+                                    heading={localeString(
                                         'views.SendingOnChain.txid'
-                                    )}: ${txid}`}
-                                </Text>
-                            </TouchableOpacity>
+                                    )}
+                                    headingCopied={`${localeString(
+                                        'views.SendingOnChain.txid'
+                                    )} ${localeString(
+                                        'components.ExternalLinkModal.copied'
+                                    )}`}
+                                    URL={txid}
+                                    theme="dark"
+                                />
+                            </View>
                         )}
 
                         <View style={styles.buttons}>
                             {txid && (
-                                <View
-                                    style={{ marginBottom: 10, width: '100%' }}
-                                >
-                                    <CopyButton
-                                        title={localeString(
-                                            'views.SendingOnChain.copyTxid'
-                                        )}
-                                        copyValue={txid}
+                                <>
+                                    <Button
+                                        title={
+                                            storedNotes
+                                                ? localeString(
+                                                      'views.SendingLightning.UpdateNote'
+                                                  )
+                                                : localeString(
+                                                      'views.SendingLightning.AddANote'
+                                                  )
+                                        }
+                                        onPress={() =>
+                                            navigation.navigate('AddNotes', {
+                                                txid
+                                            })
+                                        }
+                                        secondary
+                                        buttonStyle={{ padding: 14 }}
                                     />
-                                </View>
+                                    <Button
+                                        title={localeString(
+                                            'views.SendingOnChain.goToBlockExplorer'
+                                        )}
+                                        onPress={() =>
+                                            UrlUtils.goToBlockExplorerTXID(
+                                                txid,
+                                                testnet
+                                            )
+                                        }
+                                        containerStyle={{
+                                            width: '100%',
+                                            margin: 20
+                                        }}
+                                        secondary
+                                        icon={{
+                                            name: 'exit-to-app',
+                                            size: 25
+                                        }}
+                                        buttonStyle={{ padding: 10 }}
+                                    />
+                                </>
                             )}
 
                             {error && (
@@ -199,8 +233,8 @@ export default class SendingOnChain extends React.Component<
                                 />
                             )}
                         </View>
-                    </ScrollView>
-                </View>
+                    </View>
+                </ScrollView>
             </Screen>
         );
     }

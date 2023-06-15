@@ -17,6 +17,7 @@ import SendingOnChain from './views/SendingOnChain';
 import SendingLightning from './views/SendingLightning';
 import Channel from './views/Channels/Channel';
 import Payment from './views/Payment';
+import PaymentPaths from './views/PaymentPaths';
 import Invoice from './views/Invoice';
 
 import SparkQRScanner from './views/SparkQRScanner';
@@ -35,6 +36,7 @@ import SetPin from './views/Settings/SetPin';
 import SetDuressPin from './views/Settings/SetDuressPin';
 import Language from './views/Settings/Language';
 import Currency from './views/Settings/Currency';
+import SelectCurrency from './views/Settings/SelectCurrency';
 import Display from './views/Settings/Display';
 import CertInstallInstructions from './views/Settings/CertInstallInstructions';
 import SignVerifyMessage from './views/Settings/SignVerifyMessage';
@@ -66,6 +68,8 @@ import Accounts from './views/Accounts/Accounts';
 import ImportAccount from './views/Accounts/ImportAccount';
 import ImportAccountQRScanner from './views/Accounts/ImportAccountQRScanner';
 import BumpFee from './views/BumpFee';
+import QR from './views/QR';
+import AddNotes from './views/AddNotes';
 
 // POS
 import Order from './views/Order';
@@ -130,6 +134,9 @@ const AppScenes = {
     Currency: {
         screen: Currency
     },
+    SelectCurrency: {
+        screen: SelectCurrency
+    },
     Display: {
         screen: Display
     },
@@ -165,6 +172,9 @@ const AppScenes = {
     },
     Payment: {
         screen: Payment
+    },
+    PaymentPaths: {
+        screen: PaymentPaths
     },
     Invoice: {
         screen: Invoice
@@ -253,11 +263,19 @@ const AppScenes = {
     BumpFee: {
         screen: BumpFee
     },
+<<<<<<< HEAD
     ContactsSettings: {
         screen: ContactsSettings
     },
     AddContacts: {
         screen: AddContacts
+=======
+    QR: {
+        screen: QR
+    },
+    AddNotes: {
+        screen: AddNotes
+>>>>>>> 03238d0c97f8d1af599d382ecb1cb90b8f212398
     }
 };
 

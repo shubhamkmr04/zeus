@@ -8,35 +8,35 @@ import {
     TouchableOpacity
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
-import { Header, Icon } from 'react-native-elements';
 import { inject, observer } from 'mobx-react';
 import EncryptedStorage from 'react-native-encrypted-storage';
-import { hash, STORAGE_KEY } from './../../backends/LNC/credentialStore';
+import { hash, STORAGE_KEY } from '../../backends/LNC/credentialStore';
 
-import AddressUtils, { CUSTODIAL_LNDHUBS } from './../../utils/AddressUtils';
-import ConnectionFormatUtils from './../../utils/ConnectionFormatUtils';
-import { localeString } from './../../utils/LocaleUtils';
-import BackendUtils from './../../utils/BackendUtils';
-import { themeColor } from './../../utils/ThemeUtils';
+import AddressUtils, { CUSTODIAL_LNDHUBS } from '../../utils/AddressUtils';
+import ConnectionFormatUtils from '../../utils/ConnectionFormatUtils';
+import { localeString } from '../../utils/LocaleUtils';
+import BackendUtils from '../../utils/BackendUtils';
+import { themeColor } from '../../utils/ThemeUtils';
 
-import Button from './../../components/Button';
-import CollapsedQR from './../../components/CollapsedQR';
-import DropdownSetting from './../../components/DropdownSetting';
-import LoadingIndicator from './../../components/LoadingIndicator';
-import Screen from './../../components/Screen';
+import Button from '../../components/Button';
+import CollapsedQR from '../../components/CollapsedQR';
+import DropdownSetting from '../../components/DropdownSetting';
+import Header from '../../components/Header';
+import LoadingIndicator from '../../components/LoadingIndicator';
+import Screen from '../../components/Screen';
 import {
     SuccessMessage,
     ErrorMessage
-} from './../../components/SuccessErrorMessage';
-import Switch from './../../components/Switch';
-import TextInput from './../../components/TextInput';
+} from '../../components/SuccessErrorMessage';
+import Switch from '../../components/Switch';
+import TextInput from '../../components/TextInput';
 
 import SettingsStore, {
     INTERFACE_KEYS,
     LNC_MAILBOX_KEYS
-} from './../../stores/SettingsStore';
+} from '../../stores/SettingsStore';
 
-import Scan from './../../assets/images/SVG/Scan.svg';
+import Scan from '../../assets/images/SVG/Scan.svg';
 
 interface NodeConfigurationProps {
     navigation: any;
@@ -466,17 +466,6 @@ export default class NodeConfiguration extends React.Component<
             createAccount
         } = SettingsStore;
 
-        const BackButton = () => (
-            <Icon
-                name="arrow-back"
-                onPress={() =>
-                    navigation.navigate('Settings', { refresh: true })
-                }
-                color={themeColor('text')}
-                underlayColor="transparent"
-            />
-        );
-
         const CertInstallInstructions = () => (
             <View style={styles.button}>
                 <Button
@@ -530,7 +519,7 @@ export default class NodeConfiguration extends React.Component<
         return (
             <Screen>
                 <Header
-                    leftComponent={<BackButton />}
+                    leftComponent="Back"
                     centerComponent={{
                         text: localeString(
                             'views.Settings.AddEditNode.nodeConfig'
@@ -555,10 +544,7 @@ export default class NodeConfiguration extends React.Component<
                             />
                         )
                     }
-                    backgroundColor="transparent"
-                    containerStyle={{
-                        borderBottomWidth: 0
-                    }}
+                    navigation={navigation}
                 />
                 {!!suggestImport && (
                     <View style={styles.clipboardImport}>
@@ -760,79 +746,6 @@ export default class NodeConfiguration extends React.Component<
                         </View>
                     </View>
                 </Modal>
-
-                {false && (
-                    <View style={{ height: 200 }}>
-                        <View style={{ alignItems: 'center', top: 40 }}></View>
-                        <Text
-                            style={{
-                                alignSelf: 'center',
-                                top: 50,
-                                fontSize: 23,
-                                color: themeColor('text')
-                            }}
-                        >
-                            {nickname
-                                ? nickname
-                                : host
-                                ? `${host}:${port}`
-                                : ''}
-                        </Text>
-                        <View
-                            style={{
-                                flex: 1,
-                                flexDirection: 'row',
-                                justifyContent: 'center',
-                                top: 60
-                            }}
-                        >
-                            {false && (
-                                <View
-                                    style={{
-                                        backgroundColor: '#FFB040',
-                                        height: 26,
-                                        width: 70,
-                                        borderRadius: 8,
-                                        right: 5
-                                    }}
-                                >
-                                    <Text
-                                        style={{
-                                            ...styles.text,
-                                            color: themeColor('text'),
-                                            alignSelf: 'center',
-                                            padding: 2
-                                        }}
-                                    >
-                                        Mainnet
-                                    </Text>
-                                </View>
-                            )}
-                            {enableTor && (
-                                <View
-                                    style={{
-                                        backgroundColor: '#8A3ABD',
-                                        height: 26,
-                                        width: 70,
-                                        borderRadius: 8,
-                                        left: 5
-                                    }}
-                                >
-                                    <Text
-                                        style={{
-                                            ...styles.text,
-                                            color: themeColor('text'),
-                                            alignSelf: 'center',
-                                            padding: 2
-                                        }}
-                                    >
-                                        Tor
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                )}
 
                 <ScrollView
                     ref="_scrollView"
@@ -1105,16 +1018,15 @@ export default class NodeConfiguration extends React.Component<
                                     }}
                                 >
                                     {localeString(
-                                        'views.Settings.AddEditNode.restPort'
+                                        'views.Settings.AddEditNode.macaroon'
                                     )}
                                 </Text>
                                 <TextInput
-                                    keyboardType="numeric"
-                                    placeholder={'443/8080'}
-                                    value={port}
+                                    placeholder={'0A...'}
+                                    value={macaroonHex}
                                     onChangeText={(text: string) =>
                                         this.setState({
-                                            port: text.trim(),
+                                            macaroonHex: text.trim(),
                                             saved: false
                                         })
                                     }
@@ -1127,15 +1039,16 @@ export default class NodeConfiguration extends React.Component<
                                     }}
                                 >
                                     {localeString(
-                                        'views.Settings.AddEditNode.macaroon'
+                                        'views.Settings.AddEditNode.restPort'
                                     )}
                                 </Text>
                                 <TextInput
-                                    placeholder={'0A...'}
-                                    value={macaroonHex}
+                                    keyboardType="numeric"
+                                    placeholder={'443/8080'}
+                                    value={port}
                                     onChangeText={(text: string) =>
                                         this.setState({
-                                            macaroonHex: text.trim(),
+                                            port: text.trim(),
                                             saved: false
                                         })
                                     }

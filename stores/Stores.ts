@@ -13,6 +13,8 @@ import UTXOsStore from './UTXOsStore';
 import MessageSignStore from './MessageSignStore';
 import ActivityStore from './ActivityStore';
 import PosStore from './PosStore';
+import ModalStore from './ModalStore';
+import NotesStore from './NotesStore';
 
 class Stores {
     public channelsStore: ChannelsStore;
@@ -30,9 +32,12 @@ class Stores {
     public messageSignStore: MessageSignStore;
     public activityStore: ActivityStore;
     public posStore: PosStore;
+    public modalStore: ModalStore;
+    public NotesStore: NotesStore;
 
     constructor() {
         this.settingsStore = new SettingsStore();
+        this.modalStore = new ModalStore();
         this.fiatStore = new FiatStore(this.settingsStore);
         this.channelsStore = new ChannelsStore(this.settingsStore);
         this.invoicesStore = new InvoicesStore(this.settingsStore);
@@ -52,6 +57,7 @@ class Stores {
         this.feeStore = new FeeStore(this.settingsStore, this.nodeInfoStore);
         this.utxosStore = new UTXOsStore(this.settingsStore);
         this.messageSignStore = new MessageSignStore();
+        this.NotesStore = new NotesStore();
         this.activityStore = new ActivityStore(
             this.settingsStore,
             this.paymentsStore,

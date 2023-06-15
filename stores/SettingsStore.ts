@@ -39,6 +39,7 @@ interface DisplaySettings {
     defaultView?: string;
     displayNickname?: boolean;
     bigKeypadButtons?: boolean;
+    showAllDecimalPlaces?: boolean;
 }
 
 interface PosSettings {
@@ -75,7 +76,9 @@ export interface Settings {
     scramblePin?: boolean;
     loginBackground?: boolean;
     authenticationAttempts?: number;
+    fiatEnabled?: boolean;
     fiat?: string;
+    fiatRatesSource: 'Zeus' | 'Yadio';
     locale?: string;
     privacy: PrivacySettings;
     display: DisplaySettings;
@@ -87,10 +90,19 @@ export interface Settings {
     lndHubLnAuthMode?: string;
 }
 
+export const FIAT_RATES_SOURCE_KEYS = [
+    { key: 'Zeus', value: 'Zeus' },
+    { key: 'Yadio', value: 'Yadio' }
+];
+
 export const BLOCK_EXPLORER_KEYS = [
     { key: 'mempool.space', value: 'mempool.space' },
     { key: 'blockstream.info', value: 'blockstream.info' },
-    { key: 'Custom', value: 'Custom' }
+    {
+        key: 'Custom',
+        translateKey: 'views.Settings.Privacy.BlockExplorer.custom',
+        value: 'Custom'
+    }
 ];
 
 export const INTERFACE_KEYS = [
@@ -146,92 +158,406 @@ export const LOCALE_KEYS = [
 ];
 
 export const CURRENCY_KEYS = [
-    { key: 'Disabled', value: 'Disabled' },
-    { key: '🇺🇸 US Dollar (USD)', value: 'USD' },
-    { key: '🇯🇵 Japanese Yen (JPY)', value: 'JPY' },
-    { key: '🇨🇳 Chinese Yuan (CNY)', value: 'CNY' },
-    { key: '🇸🇬 Singapore Dollar (SGD)', value: 'SGD' },
-    { key: '🇭🇰 Hong Kong Dollar (HKD)', value: 'HKD' },
-    { key: '🇨🇦 Canadian Dollar (CAD)', value: 'CAD' },
-    { key: '🇳🇿 New Zealand Dollar (NZD)', value: 'NZD' },
-    { key: '🇦🇺 Australian Dollar (AUD)', value: 'AUD' },
-    { key: '🇨🇱 Chilean Peso (CLP)', value: 'CLP' },
-    { key: '🇬🇧 Great British Pound (GBP)', value: 'GBP' },
-    { key: '🇩🇰 Danish Krone (DKK)', value: 'DKK' },
-    { key: '🇸🇪 Swedish Krona (SEK)', value: 'SEK' },
-    { key: '🇮🇸 Icelandic Krona (ISK)', value: 'ISK' },
-    { key: '🇨🇭 Swiss Franc (CHF)', value: 'CHF' },
-    { key: '🇧🇷 Brazilian Real (BRL)', value: 'BRL' },
-    { key: '🇪🇺 Eurozone Euro (EUR)', value: 'EUR' },
-    { key: '🇷🇺 Russian Ruble (RUB)', value: 'RUB' },
-    { key: '🇵🇱 Polish Złoty (PLN)', value: 'PLN' },
-    { key: '🇹🇭 Thai Baht (THB)', value: 'THB' },
-    { key: '🇰🇷 South Korean Won (KRW)', value: 'KRW' },
-    { key: '🇹🇼 New Taiwan Dollar (TWD)', value: 'TWD' },
-    { key: '🇨🇿 Czech Koruna (CZK)', value: 'CZK' },
-    { key: '🇭🇺 Hungarian Forint (HUF)', value: 'HUF' },
-    { key: '🇮🇳 Indian Rupee (INR)', value: 'INR' },
-    { key: '🇹🇷 Turkish Lira (TRY)', value: 'TRY' },
-    { key: '🇳🇬 Nigerian Naira (NGN)', value: 'NGN' },
-    { key: '🇦🇷 Argentine Peso (ARS)', value: 'ARS' },
-    { key: '🇮🇱 Israeli New Shekel (ILS)', value: 'ILS' },
-    { key: '🇱🇧 Lebanese Pound (LBP)', value: 'LBP' },
-    { key: '🇲🇾 Malaysian Ringgit (MYR)', value: 'MYR' },
-    { key: '🇺🇦 Ukrainian Hryvnia (UAH)', value: 'UAH' },
-    { key: '🇯🇲 Jamaican Dollar (JMD)', value: 'JMD' },
-    { key: '🇨🇴 Colombian Peso (COP)', value: 'COP' },
-    { key: '🇲🇽 Mexican Peso (MXN)', value: 'MXN' },
-    { key: '🇻🇪 Venezuelan Bolivar (VES)', value: 'VES' },
-    { key: '🇹🇿 Tanzanian Shilling (TZS)', value: 'TZS' },
-    { key: '🇶🇦 Qatari Riyal (QAR)', value: 'QAR' },
-    { key: '🇹🇳 Tunisian Dinar (TND)', value: 'TND' },
-    { key: '🇳🇴 Norwegian Krone (NOK)', value: 'NOK' },
-    { key: '🇦🇪 United Arab Emirates Dirham (AED)', value: 'AED' },
-    { key: '🇹🇹 Trinidad & Tobago Dollar (TTD)', value: 'TTD' },
-    { key: '🇵🇭 Philippine Peso (PHP)', value: 'PHP' },
-    { key: '🇮🇩 Indonesian Rupiah (IDR)', value: 'IDR' },
-    { key: '🇷🇴 Romanian Leu (RON)', value: 'RON' },
-    { key: '🇨🇩 Congolese Franc (CDF)', value: 'CDF' },
-    { key: '🇨🇲🇨🇫🇹🇩🇨🇬🇬🇶🇬🇦 Central African CFA franc (XAF)', value: 'XAF' },
-    { key: '🇰🇪 Kenyan Shilling (KES)', value: 'KES' },
-    { key: '🇺🇬 Ugandan Shilling (UGX)', value: 'UGX' },
-    { key: '🇿🇦 South African Rand (ZAR)', value: 'ZAR' },
-    { key: '🇨🇺 Cuban Peso (CUP)', value: 'CUP' },
-    { key: '🇩🇴 Dominican Peso (DOP)', value: 'DOP' },
-    { key: '🇧🇿 Belize Dollar (BZD)', value: 'BZD' }
+    {
+        key: '🇺🇸 US Dollar (USD)',
+        value: 'USD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇯🇵 Japanese Yen (JPY)',
+        value: 'JPY',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇳 Chinese Yuan (CNY)',
+        value: 'CNY',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇸🇬 Singapore Dollar (SGD)',
+        value: 'SGD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇭🇰 Hong Kong Dollar (HKD)',
+        value: 'HKD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇦 Canadian Dollar (CAD)',
+        value: 'CAD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇳🇿 New Zealand Dollar (NZD)',
+        value: 'NZD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇦🇺 Australian Dollar (AUD)',
+        value: 'AUD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇱 Chilean Peso (CLP)',
+        value: 'CLP',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇬🇧 Great British Pound (GBP)',
+        value: 'GBP',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇩🇰 Danish Krone (DKK)',
+        value: 'DKK',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇸🇪 Swedish Krona (SEK)',
+        value: 'SEK',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇮🇸 Icelandic Krona (ISK)',
+        value: 'ISK',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇭 Swiss Franc (CHF)',
+        value: 'CHF',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇧🇷 Brazilian Real (BRL)',
+        value: 'BRL',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇪🇺 Eurozone Euro (EUR)',
+        value: 'EUR',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇷🇺 Russian Ruble (RUB)',
+        value: 'RUB',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇵🇱 Polish Złoty (PLN)',
+        value: 'PLN',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇹🇭 Thai Baht (THB)',
+        value: 'THB',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇰🇷 South Korean Won (KRW)',
+        value: 'KRW',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇹🇼 New Taiwan Dollar (TWD)',
+        value: 'TWD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇿 Czech Koruna (CZK)',
+        value: 'CZK',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇭🇺 Hungarian Forint (HUF)',
+        value: 'HUF',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇮🇳 Indian Rupee (INR)',
+        value: 'INR',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇹🇷 Turkish Lira (TRY)',
+        value: 'TRY',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇳🇬 Nigerian Naira (NGN)',
+        value: 'NGN',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇦🇷 Argentine Peso (ARS)',
+        value: 'ARS',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇮🇱 Israeli New Shekel (ILS)',
+        value: 'ILS',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇱🇧 Lebanese Pound (LBP)',
+        value: 'LBP',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇲🇾 Malaysian Ringgit (MYR)',
+        value: 'MYR',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇺🇦 Ukrainian Hryvnia (UAH)',
+        value: 'UAH',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇯🇲 Jamaican Dollar (JMD)',
+        value: 'JMD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇴 Colombian Peso (COP)',
+        value: 'COP',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇲🇽 Mexican Peso (MXN)',
+        value: 'MXN',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇻🇪 Venezuelan Bolivar (VES)',
+        value: 'VES',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇹🇿 Tanzanian Shilling (TZS)',
+        value: 'TZS',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇶🇦 Qatari Riyal (QAR)',
+        value: 'QAR',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇹🇳 Tunisian Dinar (TND)',
+        value: 'TND',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇳🇴 Norwegian Krone (NOK)',
+        value: 'NOK',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇦🇪 United Arab Emirates Dirham (AED)',
+        value: 'AED',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇹🇹 Trinidad & Tobago Dollar (TTD)',
+        value: 'TTD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇵🇭 Philippine Peso (PHP)',
+        value: 'PHP',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇮🇩 Indonesian Rupiah (IDR)',
+        value: 'IDR',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇷🇴 Romanian Leu (RON)',
+        value: 'RON',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇩 Congolese Franc (CDF)',
+        value: 'CDF',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇲🇨🇫🇹🇩🇨🇬🇬🇶🇬🇦 Central African CFA franc (XAF)',
+        value: 'XAF',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇰🇪 Kenyan Shilling (KES)',
+        value: 'KES',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇺🇬 Ugandan Shilling (UGX)',
+        value: 'UGX',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇿🇦 South African Rand (ZAR)',
+        value: 'ZAR',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇺 Cuban Peso (CUP)',
+        value: 'CUP',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇩🇴 Dominican Peso (DOP)',
+        value: 'DOP',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇧🇿 Belize Dollar (BZD)',
+        value: 'BZD',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇧🇴 Bolivian Boliviano (BOB)',
+        value: 'BOB',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇨🇷 Costa Rican Colón (CRC)',
+        value: 'CRC',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇬🇹 Guatemalan Quetzal (GTQ)',
+        value: 'GTQ',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇳🇮 Nicaraguan Córdoba (NIO)',
+        value: 'NIO',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇵🇾 Paraguayan Guaraní (PYG)',
+        value: 'PYG',
+        supportedSources: ['Zeus', 'Yadio']
+    },
+    {
+        key: '🇺🇾 Uruguayan Peso (UYU)',
+        value: 'UYU',
+        supportedSources: ['Zeus', 'Yadio']
+    }
 ];
 
 export const THEME_KEYS = [
-    { key: 'Dark', value: 'dark' },
-    { key: 'Light', value: 'light' },
-    { key: 'Junkie', value: 'junkie' },
-    { key: 'BPM', value: 'bpm' },
-    { key: 'Orange', value: 'orange' },
-    { key: 'Blacked Out', value: 'blacked-out' },
-    { key: 'Scarlet', value: 'scarlet' },
-    { key: 'Memberberry', value: 'purple' },
-    { key: 'Blueberry', value: 'blueberry' },
-    { key: 'Deep Purple', value: 'deep-purple' },
-    { key: 'Deadpool', value: 'deadpool' },
-    { key: 'Mighty', value: 'mighty' },
-    { key: 'Green', value: 'green' },
-    { key: 'Pub', value: 'pub' },
-    { key: 'Popsicle', value: 'popsicle' },
-    { key: 'Nostrich', value: 'nostrich' },
-    { key: 'Desert', value: 'desert' },
-    { key: 'Orange Cream Soda', value: 'orange-cream-soda' },
-    { key: 'Mint', value: 'mint' },
-    { key: 'Red Metallic', value: 'red-metallic' },
-    { key: 'Watermelon', value: 'watermelon' }
+    { key: 'Dark', translateKey: 'views.Settings.Theme.dark', value: 'dark' },
+    {
+        key: 'Light',
+        translateKey: 'views.Settings.Theme.light',
+        value: 'light'
+    },
+    {
+        key: 'Junkie',
+        translateKey: 'views.Settings.Theme.junkie',
+        value: 'junkie'
+    },
+    { key: 'BPM', translateKey: 'views.Settings.Theme.bpm', value: 'bpm' },
+    {
+        key: 'Orange',
+        translateKey: 'views.Settings.Theme.orange',
+        value: 'orange'
+    },
+    {
+        key: 'Blacked Out',
+        translateKey: 'views.Settings.Theme.blacked-out',
+        value: 'blacked-out'
+    },
+    {
+        key: 'Scarlet',
+        translateKey: 'views.Settings.Theme.scarlet',
+        value: 'scarlet'
+    },
+    {
+        key: 'Memberberry',
+        translateKey: 'views.Settings.Theme.purple',
+        value: 'purple'
+    },
+    {
+        key: 'Blueberry',
+        translateKey: 'views.Settings.Theme.blueberry',
+        value: 'blueberry'
+    },
+    {
+        key: 'Deep Purple',
+        translateKey: 'views.Settings.Theme.deep-purple',
+        value: 'deep-purple'
+    },
+    {
+        key: 'Deadpool',
+        translateKey: 'views.Settings.Theme.deadpool',
+        value: 'deadpool'
+    },
+    {
+        key: 'Mighty',
+        translateKey: 'views.Settings.Theme.mighty',
+        value: 'mighty'
+    },
+    {
+        key: 'Green',
+        translateKey: 'views.Settings.Theme.green',
+        value: 'green'
+    },
+    { key: 'Pub', translateKey: 'views.Settings.Theme.pub', value: 'pub' },
+    {
+        key: 'Popsicle',
+        translateKey: 'views.Settings.Theme.popsicle',
+        value: 'popsicle'
+    },
+    {
+        key: 'Nostrich',
+        translateKey: 'views.Settings.Theme.nostrich',
+        value: 'nostrich'
+    },
+    {
+        key: 'Desert',
+        translateKey: 'views.Settings.Theme.desert',
+        value: 'desert'
+    },
+    {
+        key: 'Orange Cream Soda',
+        translateKey: 'views.Settings.Theme.orange-cream-soda',
+        value: 'orange-cream-soda'
+    },
+    { key: 'Mint', translateKey: 'views.Settings.Theme.mint', value: 'mint' },
+    {
+        key: 'Red Metallic',
+        translateKey: 'views.Settings.Theme.red-metallic',
+        value: 'red-metallic'
+    },
+    {
+        key: 'Watermelon',
+        translateKey: 'views.Settings.Theme.watermelon',
+        value: 'watermelon'
+    }
 ];
 
 export const DEFAULT_VIEW_KEYS = [
-    { key: 'Balance', value: 'Balance' },
-    { key: 'Keypad', value: 'Keypad' }
+    {
+        key: 'Balance',
+        translateKey: 'views.Settings.Display.DefaultView.balance',
+        value: 'Balance'
+    },
+    {
+        key: 'Keypad',
+        translateKey: 'views.Settings.Display.DefaultView.keypad',
+        value: 'Keypad'
+    }
 ];
 
 export const DEFAULT_THEME = 'dark';
-export const DEFAULT_FIAT = 'Disabled';
+export const DEFAULT_FIAT = 'USD';
+export const DEFAULT_FIAT_RATES_SOURCE = 'Zeus';
 export const DEFAULT_LOCALE = 'English';
 
 export const POS_CONF_PREF_KEYS = [
@@ -260,7 +586,8 @@ export default class SettingsStore {
             theme: DEFAULT_THEME,
             defaultView: 'Keypad',
             displayNickname: false,
-            bigKeypadButtons: false
+            bigKeypadButtons: false,
+            showAllDecimalPlaces: false
         },
         pos: {
             squareEnabled: false,
@@ -287,7 +614,8 @@ export default class SettingsStore {
         isBiometryEnabled: false,
         scramblePin: true,
         loginBackground: false,
-        fiat: DEFAULT_FIAT
+        fiat: DEFAULT_FIAT,
+        fiatRatesSource: DEFAULT_FIAT_RATES_SOURCE
     };
     @observable public posStatus: string = 'unselected';
     @observable public loading = false;
@@ -454,12 +782,21 @@ export default class SettingsStore {
     public async getSettings() {
         this.loading = true;
         try {
-            // Retrieve the credentials
-            const credentials: any = await EncryptedStorage.getItem(
-                STORAGE_KEY
-            );
-            if (credentials) {
-                this.settings = JSON.parse(credentials);
+            // Retrieve the settings
+            const settings = await EncryptedStorage.getItem(STORAGE_KEY);
+            if (settings) {
+                this.settings = JSON.parse(settings);
+                if (!this.settings.fiatRatesSource) {
+                    this.settings.fiatRatesSource = DEFAULT_FIAT_RATES_SOURCE;
+                }
+
+                // migrate fiat settings from older versions
+                if (!this.settings.fiat || this.settings.fiat === 'Disabled') {
+                    this.settings.fiat = DEFAULT_FIAT;
+                    this.settings.fiatEnabled = false;
+                } else if (this.settings.fiatEnabled == null) {
+                    this.settings.fiatEnabled = true;
+                }
 
                 const node: any =
                     this.settings.nodes &&
@@ -482,10 +819,10 @@ export default class SettingsStore {
                     this.customMailboxServer = node.customMailboxServer;
                 }
             } else {
-                console.log('No credentials stored');
+                console.log('No settings stored');
             }
         } catch (error) {
-            console.log("Keychain couldn't be accessed!", error);
+            console.error('Could not load settings', error);
         } finally {
             this.loading = false;
         }
@@ -664,6 +1001,19 @@ export default class SettingsStore {
             }, 500);
         });
     };
+
+    public loginRequired = () => this.loginMethodConfigured() && !this.loggedIn;
+
+    public loginMethodConfigured = () =>
+        this.settings &&
+        (this.settings.passphrase ||
+            this.settings.pin ||
+            this.isBiometryConfigured());
+
+    public isBiometryConfigured = () =>
+        this.settings != null &&
+        this.settings.isBiometryEnabled &&
+        this.settings.supportedBiometryType !== undefined;
 
     @action
     public setLoginStatus = (status = false) => {
