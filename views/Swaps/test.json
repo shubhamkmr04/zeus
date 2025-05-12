@@ -1,0 +1,28 @@
+{
+    "acceptZeroConf": false,
+    "address": "tb1p9wzyuuzfhdpc66r4akyhrw2fmsfmdc3ynhr9k5ec6yqlms2cdszq87h6ck",
+    "bip21": "bitcoin:tb1p9wzyuuzfhdpc66r4akyhrw2fmsfmdc3ynhr9k5ec6yqlms2cdszq87h6ck?amount=0.00051&label=Send%20to%20BTC%20lightning",
+    "claimPublicKey": "026f00c3dec25dce22a99b90d8d93dd2f136e468e56e8592bcb13b8f357240c69c",
+    "createdAt": "2025-05-12T12:17:39.002Z",
+    "endpoint": "https://api.testnet.boltz.exchange/v2",
+    "expectedAmount": 51000,
+    "id": "6B7Yb4nKq2Kk",
+    "implementation": "cln-rest",
+    "invoice": "lntb506470n1p5zrehrsp5etz422j3gkkshll55ef8chrhly5sh785pr3v8tkccssesyyckvjspp5hrr5tzuzcf3vs8f0fm7x9fqg3zy50wtk4h7akmx0rml3jfsvp7tsdqqcqp2rzjqgqvg2eq57h3mtr3nyt04lfe5c3vsg7vjsn4ev32hcn3wpd29tklwf6udsqqpuqqqyqqqqlgqqqqqqgq2q9qxpqysgq82gyl9lpn98cr5gghw4w45cuu56ej3tzur74r7hxutwppmlszlwxw5yxp9ev6v2q8mlxpcsf88jwwyv4e9nuhmvuqd6g2gsn3xsh2ucqvl6n9j",
+    "nodePubkey": "02cdfbc50a09e40d0adbe54a275eca9bcf4685bd67d697558bcb22c6c0ebcd0be2",
+    "refundPrivateKey": "69cc88b86aa95c8542bdf5f026dc08647229792ea3d774e4158cbaadf1f71a1c",
+    "refundPublicKey": "0389024a85ac7a5794ca52f76746a03d685e91fcdf17dd4d33a9d81ab40f90b2c1",
+    "status": "invoice.set",
+    "swapTree": {
+        "claimLeaf": {
+            "output": "a9149061cf6bcf97dc37db442dcaf39d961600d6b8a088206f00c3dec25dce22a99b90d8d93dd2f136e468e56e8592bcb13b8f357240c69cac",
+            "version": 192
+        },
+        "refundLeaf": {
+            "output": "2089024a85ac7a5794ca52f76746a03d685e91fcdf17dd4d33a9d81ab40f90b2c1ad03f23542b1",
+            "version": 192
+        }
+    },
+    "timeoutBlockHeight": 4339186,
+    "type": "Submarine"
+}
