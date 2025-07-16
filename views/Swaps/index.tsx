@@ -664,9 +664,13 @@ export default class Swap extends React.PureComponent<SwapProps, SwapState> {
                                                                 this.checkIsValid()
                                                         );
                                                     }}
-                                                    {...(units === 'fiat'
-                                                        ? { amount: inputFiat }
-                                                        : {})}
+                                                    amount={
+                                                        units === 'fiat'
+                                                            ? inputFiat
+                                                            : units === 'BTC'
+                                                            ? inputFiat
+                                                            : undefined
+                                                    }
                                                     sats={
                                                         units === 'fiat'
                                                             ? ''
