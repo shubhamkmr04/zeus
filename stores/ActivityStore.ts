@@ -1,9 +1,15 @@
 import { action, observable, runInAction } from 'mobx';
 
 // LN
+import Payment from './../models/Payment';
 import Invoice from './../models/Invoice';
-import { LSPOrderState } from './../models/LSP';
-import { SwapState } from './../models/Swap';
+import WithdrawalRequest from './../models/WithdrawalRequest';
+
+//on-chain
+import Transaction from './../models/Transaction';
+
+import { LSPOrderState, LSPS1Activity, LSPS7Activity } from './../models/LSP';
+import Swap, { SwapState } from './../models/Swap';
 
 import SettingsStore from './SettingsStore';
 import PaymentsStore from './PaymentsStore';
@@ -38,6 +44,15 @@ const createSwapStateRecord = (
         return acc;
     }, {} as Record<SwapState, boolean>);
 };
+
+type ActivityItem =
+    | Invoice
+    | Payment
+    | Transaction
+    | WithdrawalRequest
+    | Swap
+    | LSPS1Activity
+    | LSPS7Activity;
 
 export interface Filter {
     [index: string]: any;
@@ -112,8 +127,8 @@ export const DEFAULT_FILTERS = {
 
 export default class ActivityStore {
     @observable public error = false;
-    @observable public activity: Array<any> = [];
-    @observable public filteredActivity: Array<any> = [];
+    @observable public activity: Array<ActivityItem> = [];
+    @observable public filteredActivity: Array<ActivityItem> = [];
     @observable public filters: Filter = DEFAULT_FILTERS;
     settingsStore: SettingsStore;
     paymentsStore: PaymentsStore;
