@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-    ActionSheetIOS,
     Platform,
     View,
     StyleSheet,
@@ -8,23 +7,53 @@ import {
     TouchableOpacity
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { inject, observer } from 'mobx-react';
+
+import ModalStore from '../stores/ModalStore';
 import { themeColor } from './../utils/ThemeUtils';
 import CaretDown from './../assets/images/SVG/Caret Down.svg';
 import { localeString } from './../utils/LocaleUtils';
+
+interface DropdownValue {
+    key: string;
+    translateKey?: string;
+    value: any;
+    isHeader?: boolean;
+}
 
 interface DropdownSettingProps {
     title?: string;
     titleColor?: string;
     selectedValue: string | number;
     onValueChange: (value: any) => void;
-    values: Array<any>;
+    values: Array<DropdownValue>;
     disabled?: boolean;
+    ModalStore?: ModalStore;
 }
 
+const getLabel = (v: DropdownValue) =>
+    v.translateKey ? localeString(v.translateKey) : v.key;
+
+@inject('ModalStore')
+@observer
 export default class DropdownSetting extends React.Component<
     DropdownSettingProps,
     {}
 > {
+    openSheet = () => {
+        const { values, selectedValue, onValueChange, ModalStore } = this.props;
+        const items = values.map((v) =>
+            v.isHeader
+                ? { label: `── ${v.key} ──`, value: null, isHeader: true }
+                : {
+                      label: getLabel(v),
+                      value: v.value,
+                      isSelected: v.value === selectedValue
+                  }
+        );
+        ModalStore!.toggleActionSheet({ items, onSelect: onValueChange });
+    };
+
     render() {
         const {
             title,
@@ -35,87 +64,30 @@ export default class DropdownSetting extends React.Component<
             disabled
         } = this.props;
 
-        const pickerValuesAndroid: Array<any> = [];
-        const pickerValuesIOS: Array<string> = ['Cancel'];
-        // Maps each iOS button index (minus 1 for Cancel) to the
-        // index in the original `values` array, or -1 for headers.
-        const valueIndexMap: Array<number> = [];
-        values.forEach(
-            (
-                value: {
-                    key: string;
-                    translateKey: string;
-                    value: string;
-                    isHeader?: boolean;
-                },
-                index: number
-            ) => {
-                if (value.isHeader) {
-                    pickerValuesAndroid.push(
-                        <Picker.Item
-                            key={value.key}
-                            label={`── ${value.key} ──`}
-                            value=""
-                            enabled={false}
-                        />
-                    );
-                    pickerValuesIOS.push(`── ${value.key} ──`);
-                    valueIndexMap.push(-1);
-                    return;
-                }
-                const translatedKey = value.translateKey
-                    ? localeString(value.translateKey)
-                    : undefined;
-                pickerValuesAndroid.push(
-                    <Picker.Item
-                        key={value.key}
-                        label={translatedKey ?? value.key}
-                        value={value.value}
-                    />
-                );
-                pickerValuesIOS.push(translatedKey ?? value.key);
-                valueIndexMap.push(index);
-            }
+        const selectedItem = values.find(
+            (v) => !v.isHeader && v.value === selectedValue
         );
+        const display = selectedItem ? getLabel(selectedItem) : null;
 
-        // Collect indices of header entries for iOS disabled buttons
-        const disabledButtonIndices: Array<number> = [];
-        valueIndexMap.forEach((mappedIndex, i) => {
-            if (mappedIndex === -1) {
-                // +1 because index 0 is Cancel
-                disabledButtonIndices.push(i + 1);
-            }
-        });
-
-        const selectedIndex = values.findIndex(
-            (value: any) => !value.isHeader && value.value === selectedValue
+        const titleNode = title && (
+            <Text
+                style={{
+                    ...styles.secondaryText,
+                    color: titleColor || themeColor('secondaryText')
+                }}
+            >
+                {title}
+            </Text>
         );
-        const display =
-            selectedIndex > -1
-                ? pickerValuesIOS[valueIndexMap.indexOf(selectedIndex) + 1]
-                : null;
 
         return (
             <React.Fragment>
                 {Platform.OS === 'android' && (
                     <View>
-                        {title && (
-                            <Text
-                                style={{
-                                    ...styles.secondaryText,
-                                    color:
-                                        titleColor ||
-                                        themeColor('secondaryText')
-                                }}
-                            >
-                                {title}
-                            </Text>
-                        )}
+                        {titleNode}
                         <Picker
                             selectedValue={selectedValue}
-                            onValueChange={(itemValue: string | number) =>
-                                onValueChange(itemValue)
-                            }
+                            onValueChange={(v) => onValueChange(v)}
                             style={{
                                 color: themeColor('text'),
                                 backgroundColor: themeColor('secondary'),
@@ -125,47 +97,31 @@ export default class DropdownSetting extends React.Component<
                             dropdownIconColor={themeColor('text')}
                             enabled={!disabled}
                         >
-                            {pickerValuesAndroid}
+                            {values.map((v) =>
+                                v.isHeader ? (
+                                    <Picker.Item
+                                        key={v.key}
+                                        label={`── ${v.key} ──`}
+                                        value=""
+                                        enabled={false}
+                                    />
+                                ) : (
+                                    <Picker.Item
+                                        key={v.key}
+                                        label={getLabel(v)}
+                                        value={v.value}
+                                    />
+                                )
+                            )}
                         </Picker>
                     </View>
                 )}
 
                 {Platform.OS === 'ios' && (
                     <View>
-                        {title && (
-                            <Text
-                                style={{
-                                    ...styles.secondaryText,
-                                    color:
-                                        titleColor ||
-                                        themeColor('secondaryText')
-                                }}
-                            >
-                                {title}
-                            </Text>
-                        )}
+                        {titleNode}
                         <TouchableOpacity
-                            onPress={() =>
-                                !disabled &&
-                                ActionSheetIOS.showActionSheetWithOptions(
-                                    {
-                                        options: pickerValuesIOS,
-                                        cancelButtonIndex: 0,
-                                        disabledButtonIndices
-                                    },
-                                    (buttonIndex) => {
-                                        if (buttonIndex) {
-                                            const mappedIndex =
-                                                valueIndexMap[buttonIndex - 1];
-                                            if (mappedIndex !== -1) {
-                                                onValueChange(
-                                                    values[mappedIndex].value
-                                                );
-                                            }
-                                        }
-                                    }
-                                )
-                            }
+                            onPress={() => !disabled && this.openSheet()}
                             style={{
                                 opacity: disabled ? 0.25 : 1,
                                 justifyContent: 'center'

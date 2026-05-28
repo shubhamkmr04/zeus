@@ -7,6 +7,8 @@ import {
     RATING_REPROMPT_INTERVAL
 } from '../utils/RatingUtils';
 
+import type { ActionSheetItem } from '../components/Modals/ActionSheetModal';
+
 export default class ModalStore {
     @observable public showExternalLinkModal: boolean = false;
     @observable public showAndroidNfcModal: boolean = false;
@@ -19,6 +21,12 @@ export default class ModalStore {
     @observable public showRatingModal: boolean = false;
     @observable public showRestoreChannelModal: boolean = false;
     @observable public showScreenRecordingWarning: boolean = false;
+    @observable public showActionSheet: boolean = false;
+    @observable public actionSheetItems: ActionSheetItem[] = [];
+    public actionSheetOnSelect?: (value: any) => void;
+    @observable public showEnlargedQR: boolean = false;
+    @observable public enlargedQRValue: string = '';
+    @observable public enlargedQRLogo: any = undefined;
     @observable public nwcPendingPaymentsData?: {
         pendingEvents: any[];
         totalAmount: number;
@@ -95,6 +103,23 @@ export default class ModalStore {
     @action
     public toggleScreenRecordingWarning = (status: boolean) => {
         this.showScreenRecordingWarning = status;
+    };
+
+    @action
+    public toggleEnlargedQR = (params?: { value?: string; logo?: any }) => {
+        this.showEnlargedQR = !!params?.value;
+        this.enlargedQRValue = params?.value ?? '';
+        this.enlargedQRLogo = params?.logo;
+    };
+
+    @action
+    public toggleActionSheet = (params?: {
+        items?: ActionSheetItem[];
+        onSelect?: (value: any) => void;
+    }) => {
+        this.showActionSheet = !!params?.items?.length;
+        this.actionSheetItems = params?.items ?? [];
+        this.actionSheetOnSelect = params?.onSelect;
     };
 
     @action
