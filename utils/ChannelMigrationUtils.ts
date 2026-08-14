@@ -637,6 +637,12 @@ export const exportChannelDb = async (
             );
         };
 
+        const cancelExport = () =>
+            restartAlert(
+                localeString('views.Tools.migration.export.cancelled'),
+                localeString('views.Tools.migration.export.cancelled.text')
+            );
+
         if (Platform.OS === 'android') {
             const downloadPath = `${RNFS.DownloadDirectoryPath}/${backupFileName}`;
             await RNFS.copyFile(stagingPath, downloadPath);
@@ -657,16 +663,13 @@ export const exportChannelDb = async (
             const isDismissed =
                 shareResult.dismissedAction || shareResult.success === false;
 
+            await RNFS.unlink(stagingPath);
+
             if (isDismissed) {
-                await RNFS.unlink(stagingPath);
-                restartAlert(
-                    localeString('views.Tools.migration.export.cancelled'),
-                    localeString('views.Tools.migration.export.cancelled.text')
-                );
+                cancelExport();
                 return;
             }
 
-            await RNFS.unlink(stagingPath);
             await finishExport();
         } catch (err: any) {
             if (await RNFS.exists(stagingPath)) {
@@ -678,10 +681,7 @@ export const exportChannelDb = async (
                 errorMsg.includes('User did not share') ||
                 errorMsg.includes('cancel')
             ) {
-                restartAlert(
-                    localeString('views.Tools.migration.export.cancelled'),
-                    localeString('views.Tools.migration.export.cancelled.text')
-                );
+                cancelExport();
                 return;
             }
 
