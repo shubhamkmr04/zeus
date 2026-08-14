@@ -1,4 +1,4 @@
-import { action, observable, reaction, runInAction } from 'mobx';
+import { action, computed, observable, reaction, runInAction } from 'mobx';
 import BigNumber from 'bignumber.js';
 // leave as is, do not do tree-shaking
 import { chain } from 'lodash';
@@ -167,6 +167,15 @@ export default class ChannelsStore {
                     this.filterClosedChannels();
                 }
             }
+        );
+    }
+
+    @computed
+    public get hasChannels(): boolean {
+        return (
+            this.channels.length > 0 ||
+            this.pendingChannels.length > 0 ||
+            this.closedChannels.length > 0
         );
     }
 

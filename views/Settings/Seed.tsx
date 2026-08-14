@@ -39,7 +39,7 @@ import {
 import { themeColor } from '../../utils/ThemeUtils';
 import { localeString } from '../../utils/LocaleUtils';
 import { IS_BACKED_UP_KEY } from '../../utils/MigrationUtils';
-import { handleExportChannels } from '../../utils/ChannelMigrationUtils';
+import { startChannelExport } from '../../utils/ChannelMigrationUtils';
 
 import Storage from '../../storage';
 
@@ -72,8 +72,7 @@ interface SeedState {
     understood: boolean;
     showModal: boolean;
     isDeleteModalVisible: boolean;
-    isChannelExporting: boolean;
-    channelExportMessage: string;
+    channelExportMessage: string | null;
 }
 
 const MnemonicWord = ({ index, word }: { index: any; word: any }) => {
@@ -127,12 +126,11 @@ const MnemonicWord = ({ index, word }: { index: any; word: any }) => {
 @inject('SettingsStore', 'NodeInfoStore', 'SyncStore', 'ChannelsStore')
 @observer
 export default class Seed extends React.PureComponent<SeedProps, SeedState> {
-    state = {
+    state: SeedState = {
         understood: this.props.route.params?.skipWarning ?? false,
         showModal: false,
         isDeleteModalVisible: false,
-        isChannelExporting: false,
-        channelExportMessage: ''
+        channelExportMessage: null
     };
 
     componentDidMount() {
@@ -210,38 +208,19 @@ export default class Seed extends React.PureComponent<SeedProps, SeedState> {
 
     handleExportChannels = () => {
         const { SettingsStore, NodeInfoStore, SyncStore } = this.props;
-        const { isSyncing } = SyncStore;
 
-        if (isSyncing) {
-            Alert.alert(
-                localeString('general.error'),
-                localeString('views.Tools.migration.export.syncInProgress')
-            );
-            return;
-        }
-
-        handleExportChannels({
-            isSqlite: SettingsStore.isSqlite ?? true,
-            lndDir: SettingsStore.lndDir || 'lnd',
-            isTestnet: NodeInfoStore.nodeInfo.isTestNet,
-            pubkey: NodeInfoStore.nodeInfo.identity_pubkey,
-            seedPhrase: SettingsStore.seedPhrase.join(' '),
-            setStatus: (msg: string | null) =>
-                this.setState({
-                    isChannelExporting: msg !== null,
-                    channelExportMessage: msg ?? ''
-                })
+        startChannelExport({
+            SettingsStore,
+            NodeInfoStore,
+            SyncStore,
+            setStatus: (channelExportMessage: string | null) =>
+                this.setState({ channelExportMessage })
         });
     };
 
     render() {
         const { navigation, SettingsStore, ChannelsStore, route } = this.props;
-        const {
-            understood,
-            showModal,
-            isChannelExporting,
-            channelExportMessage
-        } = this.state;
+        const { understood, showModal, channelExportMessage } = this.state;
         // Prefer an explicit seed for the wallet being viewed. SettingsStore
         // only mirrors the active node, so inactive wallets must pass
         // walletSeedPhrase from WalletConfiguration.
@@ -265,10 +244,7 @@ export default class Seed extends React.PureComponent<SeedProps, SeedState> {
         const seedImplementation =
             route.params?.implementation || SettingsStore.implementation;
         const isTwelveWords = seedPhrase?.length === 12;
-        const hasChannels =
-            ChannelsStore.channels.length > 0 ||
-            ChannelsStore.pendingChannels.length > 0 ||
-            ChannelsStore.closedChannels.length > 0;
+        const { hasChannels } = ChannelsStore;
 
         const DangerouslyCopySeed = () => (
             <TouchableOpacity
@@ -349,7 +325,7 @@ export default class Seed extends React.PureComponent<SeedProps, SeedState> {
             <Screen>
                 {this.renderDeleteModal()}
                 <ChannelBackupLoadingModal
-                    isOpen={isChannelExporting}
+                    isOpen={channelExportMessage !== null}
                     message={channelExportMessage}
                 />
                 <Header

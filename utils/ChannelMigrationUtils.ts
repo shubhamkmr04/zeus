@@ -14,11 +14,22 @@ import { zipFolder, unzipFile, encryptFile, decryptFile } from './ZipUtils';
 
 import { BACKUPS_HOST } from '../stores/ChannelBackupStore';
 
+import type SettingsStore from '../stores/SettingsStore';
+import type NodeInfoStore from '../stores/NodeInfoStore';
+import type SyncStore from '../stores/SyncStore';
+
 import Storage from '../storage';
 
 export const CHANNEL_MIGRATION_ACTIVE = 'channel_migration_active';
 
 const VALID_CHANNEL_DB_EXTENSIONS = ['.zip'];
+
+interface StartChannelExportParams {
+    SettingsStore: SettingsStore;
+    NodeInfoStore: NodeInfoStore;
+    SyncStore: SyncStore;
+    setStatus: (msg: string | null) => void;
+}
 
 const getGraphDir = (lndDir: string, isTestnet: boolean): string => {
     const network = isTestnet ? 'testnet' : 'mainnet';
@@ -842,6 +853,35 @@ export const handleExportChannels = ({
             ]
         );
     }
+};
+
+/**
+ * Entry point for the channel export flow, shared by the Tools and Seed views.
+ * Blocks while the node is still syncing, then resolves the export parameters
+ * from the active node's stores.
+ */
+export const startChannelExport = ({
+    SettingsStore,
+    NodeInfoStore,
+    SyncStore,
+    setStatus
+}: StartChannelExportParams) => {
+    if (SyncStore.isSyncing) {
+        Alert.alert(
+            localeString('general.error'),
+            localeString('views.Tools.migration.export.syncInProgress')
+        );
+        return;
+    }
+
+    handleExportChannels({
+        isSqlite: SettingsStore.isSqlite ?? true,
+        lndDir: SettingsStore.lndDir || 'lnd',
+        isTestnet: NodeInfoStore.nodeInfo.isTestNet,
+        pubkey: NodeInfoStore.nodeInfo.identity_pubkey,
+        seedPhrase: SettingsStore.seedPhrase.join(' '),
+        setStatus
+    });
 };
 
 /**

@@ -9,7 +9,7 @@ import { themeColor } from '../../utils/ThemeUtils';
 
 interface ChannelBackupLoadingModalProps {
     isOpen: boolean;
-    message?: string;
+    message?: string | null;
 }
 
 export default class ChannelBackupLoadingModal extends React.Component<ChannelBackupLoadingModalProps> {

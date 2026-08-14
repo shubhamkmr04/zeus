@@ -33,7 +33,7 @@ import BackendUtils from '../../utils/BackendUtils';
 import { localeString } from '../../utils/LocaleUtils';
 import { clearAllData } from '../../utils/DataClearUtils';
 import { themeColor } from '../../utils/ThemeUtils';
-import { handleExportChannels } from '../../utils/ChannelMigrationUtils';
+import { startChannelExport } from '../../utils/ChannelMigrationUtils';
 
 import SettingsStore from '../../stores/SettingsStore';
 import NodeInfoStore from '../../stores/NodeInfoStore';
@@ -53,8 +53,7 @@ interface ToolsProps {
 }
 
 interface ToolsState {
-    isChannelExporting: boolean;
-    channelExportMessage: string;
+    channelExportMessage: string | null;
 }
 
 @inject('SettingsStore', 'NodeInfoStore', 'SyncStore', 'ChannelsStore')
@@ -65,8 +64,7 @@ export default class Tools extends React.Component<ToolsProps, ToolsState> {
     constructor(props: ToolsProps) {
         super(props);
         this.state = {
-            isChannelExporting: false,
-            channelExportMessage: ''
+            channelExportMessage: null
         };
     }
 
@@ -120,37 +118,20 @@ export default class Tools extends React.Component<ToolsProps, ToolsState> {
 
     handleExportChannels = () => {
         const { SettingsStore, NodeInfoStore, SyncStore } = this.props;
-        const { isSyncing } = SyncStore;
 
-        if (isSyncing) {
-            Alert.alert(
-                localeString('general.error'),
-                localeString('views.Tools.migration.export.syncInProgress')
-            );
-            return;
-        }
-
-        handleExportChannels({
-            isSqlite: SettingsStore.isSqlite ?? true,
-            lndDir: SettingsStore.lndDir || 'lnd',
-            isTestnet: NodeInfoStore.nodeInfo.isTestNet,
-            pubkey: NodeInfoStore.nodeInfo.identity_pubkey,
-            seedPhrase: SettingsStore.seedPhrase.join(' '),
-            setStatus: (msg: string | null) =>
-                this.setState({
-                    isChannelExporting: msg !== null,
-                    channelExportMessage: msg ?? ''
-                })
+        startChannelExport({
+            SettingsStore,
+            NodeInfoStore,
+            SyncStore,
+            setStatus: (channelExportMessage: string | null) =>
+                this.setState({ channelExportMessage })
         });
     };
 
     render() {
         const { navigation, SettingsStore, ChannelsStore } = this.props;
         const { settings, isChannelMigrating, implementation } = SettingsStore;
-        const hasChannels =
-            ChannelsStore.channels.length > 0 ||
-            ChannelsStore.pendingChannels.length > 0 ||
-            ChannelsStore.closedChannels.length > 0;
+        const { hasChannels } = ChannelsStore;
 
         const selectedNode: any =
             (settings &&
@@ -174,7 +155,7 @@ export default class Tools extends React.Component<ToolsProps, ToolsState> {
                     navigation={navigation}
                 />
                 <ChannelBackupLoadingModal
-                    isOpen={this.state.isChannelExporting}
+                    isOpen={this.state.channelExportMessage !== null}
                     message={this.state.channelExportMessage}
                 />
                 <ScrollView
