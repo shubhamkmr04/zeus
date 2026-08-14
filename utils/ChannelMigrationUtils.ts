@@ -1,4 +1,4 @@
-import { Alert, Platform } from 'react-native';
+import { Alert, AlertButton, Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import RNRestart from 'react-native-restart';
@@ -717,56 +717,44 @@ export const handleExportChannels = ({
         `${localeString('views.Tools.migration.export.text1')}\n\n` +
         `⚠️ ${localeString('views.Tools.migration.export.text2')}`;
 
+    const buttons: AlertButton[] = [
+        {
+            text: localeString('general.cancel'),
+            style: 'cancel'
+        }
+    ];
+
     if (isSqlite) {
-        Alert.alert(
-            localeString('views.Tools.migration.export.title'),
-            warningText,
-            [
-                {
-                    text: localeString('general.cancel'),
-                    style: 'cancel'
-                },
-                {
-                    text: localeString('views.Tools.migration.export.olympus'),
-                    style: 'default',
-                    onPress: async () => {
-                        await uploadChannelBackupToOlympus(
-                            lndDir,
-                            isTestnet,
-                            pubkey,
-                            seedPhrase,
-                            setStatus
-                        );
-                    }
-                },
-                {
-                    text: localeString('views.Tools.migration.export.local'),
-                    style: 'default',
-                    onPress: async () => {
-                        await exportChannelDb(lndDir, isTestnet, setStatus);
-                    }
-                }
-            ]
-        );
-    } else {
-        Alert.alert(
-            localeString('views.Tools.migration.export.title'),
-            warningText,
-            [
-                {
-                    text: localeString('general.cancel'),
-                    style: 'cancel'
-                },
-                {
-                    text: localeString('general.ok'),
-                    style: 'default',
-                    onPress: async () => {
-                        await exportChannelDb(lndDir, isTestnet, setStatus);
-                    }
-                }
-            ]
-        );
+        buttons.push({
+            text: localeString('views.Tools.migration.export.olympus'),
+            style: 'default',
+            onPress: async () => {
+                await uploadChannelBackupToOlympus(
+                    lndDir,
+                    isTestnet,
+                    pubkey,
+                    seedPhrase,
+                    setStatus
+                );
+            }
+        });
     }
+
+    buttons.push({
+        text: localeString(
+            isSqlite ? 'views.Tools.migration.export.local' : 'general.ok'
+        ),
+        style: 'default',
+        onPress: async () => {
+            await exportChannelDb(lndDir, isTestnet, setStatus);
+        }
+    });
+
+    Alert.alert(
+        localeString('views.Tools.migration.export.title'),
+        warningText,
+        buttons
+    );
 };
 
 /**
