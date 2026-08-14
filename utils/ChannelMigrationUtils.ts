@@ -53,6 +53,31 @@ const restartAlert = (title: string, message?: string) =>
         { cancelable: false }
     );
 
+/**
+ * Requests an authentication challenge from Olympus. The caller signs the
+ * returned verification message — the upload flow signs through the active
+ * backend, while the restore flow signs against the node pubkey directly,
+ * as it runs before the backend is available.
+ */
+const fetchAuthChallenge = async (pubkey: string): Promise<string> => {
+    const response = await ReactNativeBlobUtil.fetch(
+        'POST',
+        `${BACKUPS_HOST}/api/auth`,
+        { 'Content-Type': 'application/json' },
+        JSON.stringify({ pubkey })
+    );
+
+    if (response.info().status !== 200) {
+        throw new Error('Authentication failed');
+    }
+
+    const json = response.json();
+    if (!json.success || !json.verification)
+        throw new Error('Invalid auth response');
+
+    return json.verification;
+};
+
 const stopLndSafely = async (): Promise<void> => {
     try {
         await stopLnd();
@@ -160,24 +185,11 @@ export const uploadChannelBackupToOlympus = async (
 
         // 1. Authentication for status to check for existing backup
         console.log('Authenticating for status check...');
-        const statusAuthResponse = await ReactNativeBlobUtil.fetch(
-            'POST',
-            `${BACKUPS_HOST}/api/auth`,
-            { 'Content-Type': 'application/json' },
-            JSON.stringify({ pubkey })
-        );
-
-        if (statusAuthResponse.info().status !== 200) {
-            throw new Error('Authentication failed');
-        }
-
-        const statusAuth = statusAuthResponse.json();
-        if (!statusAuth.success || !statusAuth.verification)
-            throw new Error('Invalid auth response');
+        const statusVerification = await fetchAuthChallenge(pubkey);
 
         console.log('Signing status challenge...');
         const statusSignData = await BackendUtils.signMessage(
-            statusAuth.verification
+            statusVerification
         );
         const statusSignature =
             statusSignData.zbase || statusSignData.signature;
@@ -191,7 +203,7 @@ export const uploadChannelBackupToOlympus = async (
             JSON.stringify({
                 pubkey,
                 signature: statusSignature,
-                message: statusAuth.verification
+                message: statusVerification
             })
         );
 
@@ -211,24 +223,11 @@ export const uploadChannelBackupToOlympus = async (
                     localeString('views.Tools.migration.export.authenticating')
                 );
                 console.log('Authenticating for uploading backup...');
-                const uploadAuthResponse = await ReactNativeBlobUtil.fetch(
-                    'POST',
-                    `${BACKUPS_HOST}/api/auth`,
-                    { 'Content-Type': 'application/json' },
-                    JSON.stringify({ pubkey })
-                );
-
-                if (uploadAuthResponse.info().status !== 200) {
-                    throw new Error('Authentication failed');
-                }
-
-                const uploadAuth = uploadAuthResponse.json();
-                if (!uploadAuth.success || !uploadAuth.verification)
-                    throw new Error('Invalid auth response');
+                const uploadVerification = await fetchAuthChallenge(pubkey);
 
                 console.log('Signing upload challenge...');
                 const uploadSignData = await BackendUtils.signMessage(
-                    uploadAuth.verification
+                    uploadVerification
                 );
                 const uploadSignature =
                     uploadSignData.zbase || uploadSignData.signature;
@@ -281,7 +280,7 @@ export const uploadChannelBackupToOlympus = async (
                     { 'Content-Type': 'application/json' },
                     JSON.stringify({
                         pubkey,
-                        message: uploadAuth.verification,
+                        message: uploadVerification,
                         signature: uploadSignature,
                         backup: encryptedBase64
                     })
@@ -387,24 +386,11 @@ export const restoreChannelBackupFromOlympus = async (
     try {
         // 1. Authentication for status to check for existing backup
         console.log('Authenticating for status check...');
-        const statusAuthResponse = await ReactNativeBlobUtil.fetch(
-            'POST',
-            `${BACKUPS_HOST}/api/auth`,
-            { 'Content-Type': 'application/json' },
-            JSON.stringify({ pubkey })
-        );
-
-        if (statusAuthResponse.info().status !== 200) {
-            throw new Error('Authentication failed');
-        }
-
-        const statusAuth = statusAuthResponse.json();
-        if (!statusAuth.success || !statusAuth.verification)
-            throw new Error('Invalid auth response');
+        const statusVerification = await fetchAuthChallenge(pubkey);
 
         console.log('Signing status challenge...');
         const statusSignData = await signMessageNodePubkey(
-            Base64Utils.stringToUint8Array(statusAuth.verification)
+            Base64Utils.stringToUint8Array(statusVerification)
         );
         const statusSignature = statusSignData.signature;
 
@@ -416,7 +402,7 @@ export const restoreChannelBackupFromOlympus = async (
             JSON.stringify({
                 pubkey,
                 signature: statusSignature,
-                message: statusAuth.verification
+                message: statusVerification
             })
         );
 
@@ -482,24 +468,11 @@ export const restoreChannelBackupFromOlympus = async (
 
         // 2. Authenticatication for restoring backup
         console.log('Authenticating for restore...');
-        const restoreAuthResponse = await ReactNativeBlobUtil.fetch(
-            'POST',
-            `${BACKUPS_HOST}/api/auth`,
-            { 'Content-Type': 'application/json' },
-            JSON.stringify({ pubkey })
-        );
-
-        if (restoreAuthResponse.info().status !== 200) {
-            throw new Error('Authentication failed');
-        }
-
-        const restoreAuth = restoreAuthResponse.json();
-        if (!restoreAuth.success || !restoreAuth.verification)
-            throw new Error('Invalid auth response');
+        const restoreVerification = await fetchAuthChallenge(pubkey);
 
         console.log('Signing restore challenge...');
         const restoreSignData = await signMessageNodePubkey(
-            Base64Utils.stringToUint8Array(restoreAuth.verification)
+            Base64Utils.stringToUint8Array(restoreVerification)
         );
         const restoreSignature = restoreSignData.signature;
 
@@ -515,7 +488,7 @@ export const restoreChannelBackupFromOlympus = async (
             { 'Content-Type': 'application/json' },
             JSON.stringify({
                 pubkey,
-                message: restoreAuth.verification,
+                message: restoreVerification,
                 signature: restoreSignature
             })
         );
