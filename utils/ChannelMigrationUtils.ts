@@ -690,7 +690,10 @@ export const exportChannelDb = async (
     } catch (error) {
         console.error('Export Failed:', error);
         setStatus(null);
-        restartAlert(localeString('general.error'));
+        restartAlert(
+            localeString('general.error'),
+            localeString('views.Tools.migration.export.failed')
+        );
     }
 };
 

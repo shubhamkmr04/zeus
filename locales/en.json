@@ -1103,6 +1103,7 @@
     "views.Tools.migration.export.cancelled": "Export Cancelled",
     "views.Tools.migration.export.cancelled.text": "The export was cancelled but LND has been stopped. Please restart the app.",
     "views.Tools.migration.export.failedToStopLnd": "Failed to stop LND. Please restart the app and try again.",
+    "views.Tools.migration.export.failed": "The channel export failed and your channels were not exported. Please restart the app and try again.",
     "views.Tools.migration.import.noBackupFoundOlympus": "No channel backup was found on Olympus for this wallet.",
     "views.Tools.migration.import.backupFoundMessage": "A channel backup from {{date}} was found. Would you like to restore it?",
     "views.Tools.migration.import.waitingForLnd": "Waiting for LND to start...",
