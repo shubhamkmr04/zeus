@@ -129,13 +129,10 @@ export const uploadChannelBackupToOlympus = async (
     isTestnet: boolean,
     pubkey: string,
     seedArray: string,
-    setStatus?: (message: string | null) => void
+    setStatus: (message: string | null) => void = () => {}
 ) => {
     try {
-        if (setStatus)
-            setStatus(
-                localeString('views.Tools.migration.export.authenticating')
-            );
+        setStatus(localeString('views.Tools.migration.export.authenticating'));
 
         const graphDir = getGraphDir(lndDir, isTestnet);
 
@@ -144,7 +141,7 @@ export const uploadChannelBackupToOlympus = async (
                 localeString('general.error'),
                 localeString('views.Tools.migration.export.dbNotFound')
             );
-            if (setStatus) setStatus(null);
+            setStatus(null);
             return;
         }
 
@@ -172,10 +169,7 @@ export const uploadChannelBackupToOlympus = async (
         const statusSignature =
             statusSignData.zbase || statusSignData.signature;
 
-        if (setStatus)
-            setStatus(
-                localeString('views.Tools.migration.export.checkingStatus')
-            );
+        setStatus(localeString('views.Tools.migration.export.checkingStatus'));
         console.log('Checking backup status...');
         const statusResponse = await ReactNativeBlobUtil.fetch(
             'POST',
@@ -200,12 +194,9 @@ export const uploadChannelBackupToOlympus = async (
 
         const proceedToUpload = async () => {
             try {
-                if (setStatus)
-                    setStatus(
-                        localeString(
-                            'views.Tools.migration.export.authenticating'
-                        )
-                    );
+                setStatus(
+                    localeString('views.Tools.migration.export.authenticating')
+                );
                 console.log('Authenticating for uploading backup...');
                 const uploadAuthResponse = await ReactNativeBlobUtil.fetch(
                     'POST',
@@ -229,15 +220,14 @@ export const uploadChannelBackupToOlympus = async (
                 const uploadSignature =
                     uploadSignData.zbase || uploadSignData.signature;
 
-                if (setStatus)
-                    setStatus(
-                        localeString('views.Tools.migration.export.stoppingLnd')
-                    );
+                setStatus(
+                    localeString('views.Tools.migration.export.stoppingLnd')
+                );
                 try {
                     await stopLndSafely();
                 } catch (e: any) {
                     console.error('Failed to stop LND:', e.message);
-                    if (setStatus) setStatus(null);
+                    setStatus(null);
                     Alert.alert(
                         localeString('general.error'),
                         localeString(
@@ -247,21 +237,17 @@ export const uploadChannelBackupToOlympus = async (
                     return;
                 }
 
-                if (setStatus)
-                    setStatus(
-                        localeString(
-                            'views.Tools.migration.export.zippingBackup'
-                        )
-                    );
+                setStatus(
+                    localeString('views.Tools.migration.export.zippingBackup')
+                );
                 const timestamp = Date.now();
                 const tempZipPath = `${RNFS.CachesDirectoryPath}/zeus-olympus-backup-${timestamp}.zip`;
                 const tempEncPath = `${RNFS.CachesDirectoryPath}/zeus-olympus-backup-${timestamp}.enc`;
                 await zipFolder(graphDir, tempZipPath);
 
-                if (setStatus)
-                    setStatus(
-                        localeString('views.Tools.migration.export.encrypting')
-                    );
+                setStatus(
+                    localeString('views.Tools.migration.export.encrypting')
+                );
                 await encryptFile(tempZipPath, tempEncPath, seedArray);
                 await RNFS.unlink(tempZipPath);
 
@@ -272,10 +258,9 @@ export const uploadChannelBackupToOlympus = async (
                 await RNFS.unlink(tempEncPath);
 
                 // upload to the server
-                if (setStatus)
-                    setStatus(
-                        localeString('views.Tools.migration.export.uploading')
-                    );
+                setStatus(
+                    localeString('views.Tools.migration.export.uploading')
+                );
                 console.log('Uploading encrypted backup...');
                 const backupResponse = await ReactNativeBlobUtil.fetch(
                     'POST',
@@ -304,7 +289,7 @@ export const uploadChannelBackupToOlympus = async (
                 }
                 console.log('Upload response:', json);
 
-                if (setStatus) setStatus(null);
+                setStatus(null);
 
                 if (status === 200 && json.success) {
                     await Storage.setItem(
@@ -343,7 +328,7 @@ export const uploadChannelBackupToOlympus = async (
                 }
             } catch (e) {
                 console.error('Upload failed:', e);
-                if (setStatus) setStatus(null);
+                setStatus(null);
                 Alert.alert(
                     localeString('general.error'),
                     localeString('views.Tools.migration.export.failedToUpload'),
@@ -373,7 +358,7 @@ export const uploadChannelBackupToOlympus = async (
                         text: localeString('general.cancel'),
                         style: 'cancel',
                         onPress: () => {
-                            if (setStatus) setStatus(null);
+                            setStatus(null);
                         }
                     },
                     {
@@ -390,7 +375,7 @@ export const uploadChannelBackupToOlympus = async (
         }
     } catch (error) {
         console.error(error);
-        if (setStatus) setStatus(null);
+        setStatus(null);
         Alert.alert(
             localeString('general.error'),
             localeString('views.Tools.migration.export.failedToUpload')
@@ -626,7 +611,7 @@ export const restoreChannelBackupFromOlympus = async (
 export const exportChannelDb = async (
     lndDir: string,
     isTestnet: boolean,
-    setStatus?: (message: string | null) => void
+    setStatus: (message: string | null) => void = () => {}
 ) => {
     try {
         const graphDir = getGraphDir(lndDir, isTestnet);
@@ -636,17 +621,16 @@ export const exportChannelDb = async (
                 localeString('general.error'),
                 localeString('views.Tools.migration.databaseNotFound')
             );
-            if (setStatus) setStatus(null);
+            setStatus(null);
             return;
         }
 
-        if (setStatus)
-            setStatus(localeString('views.Tools.migration.export.stoppingLnd'));
+        setStatus(localeString('views.Tools.migration.export.stoppingLnd'));
         try {
             await stopLndSafely();
         } catch (e: any) {
             console.error('Failed to stop LND:', e.message);
-            if (setStatus) setStatus(null);
+            setStatus(null);
             Alert.alert(
                 localeString('general.error'),
                 localeString('views.Tools.migration.export.failedToStopLnd')
@@ -667,17 +651,13 @@ export const exportChannelDb = async (
             await RNFS.unlink(stagingPath);
         }
 
-        if (setStatus)
-            setStatus(
-                localeString('views.Tools.migration.export.zippingBackup')
-            );
+        setStatus(localeString('views.Tools.migration.export.zippingBackup'));
         await zipFolder(graphDir, stagingPath);
 
-        if (setStatus)
-            setStatus(localeString('views.Tools.migration.export.savingFile'));
+        setStatus(localeString('views.Tools.migration.export.savingFile'));
 
         const finishExport = async () => {
-            if (setStatus) setStatus(null);
+            setStatus(null);
             await Storage.setItem(
                 CHANNEL_MIGRATION_ACTIVE,
                 JSON.stringify({ migrationStatus: true, lndDir })
@@ -765,7 +745,7 @@ export const exportChannelDb = async (
         }
     } catch (error) {
         console.error('Export Failed:', error);
-        if (setStatus) setStatus(null);
+        setStatus(null);
         Alert.alert(
             localeString('general.error'),
             undefined,
