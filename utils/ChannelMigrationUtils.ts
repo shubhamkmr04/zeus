@@ -40,6 +40,19 @@ const getGraphDir = (lndDir: string, isTestnet: boolean): string => {
     return `${rootPath}/${lndDir}/data/graph/${network}`;
 };
 
+const restartAlert = (title: string, message?: string) =>
+    Alert.alert(
+        title,
+        message,
+        [
+            {
+                text: localeString('views.Wallet.restart'),
+                onPress: () => RNRestart.Restart()
+            }
+        ],
+        { cancelable: false }
+    );
+
 const stopLndSafely = async (): Promise<void> => {
     try {
         await stopLnd();
@@ -297,48 +310,27 @@ export const uploadChannelBackupToOlympus = async (
                         JSON.stringify({ migrationStatus: true, lndDir })
                     );
 
-                    Alert.alert(
+                    restartAlert(
                         localeString('views.Tools.migration.export.success'),
                         localeString(
                             'views.Tools.migration.export.success.text'
-                        ),
-                        [
-                            {
-                                text: localeString('views.Wallet.restart'),
-                                onPress: () => RNRestart.Restart()
-                            }
-                        ],
-                        { cancelable: false }
+                        )
                     );
                 } else {
-                    Alert.alert(
+                    restartAlert(
                         localeString('general.error'),
                         json.error ||
                             localeString(
                                 'views.Tools.migration.export.failedToUpload'
-                            ),
-                        [
-                            {
-                                text: localeString('views.Wallet.restart'),
-                                onPress: () => RNRestart.Restart()
-                            }
-                        ],
-                        { cancelable: false }
+                            )
                     );
                 }
             } catch (e) {
                 console.error('Upload failed:', e);
                 setStatus(null);
-                Alert.alert(
+                restartAlert(
                     localeString('general.error'),
-                    localeString('views.Tools.migration.export.failedToUpload'),
-                    [
-                        {
-                            text: localeString('views.Wallet.restart'),
-                            onPress: () => RNRestart.Restart()
-                        }
-                    ],
-                    { cancelable: false }
+                    localeString('views.Tools.migration.export.failedToUpload')
                 );
             }
         };
@@ -662,20 +654,13 @@ export const exportChannelDb = async (
                 CHANNEL_MIGRATION_ACTIVE,
                 JSON.stringify({ migrationStatus: true, lndDir })
             );
-            Alert.alert(
+            restartAlert(
                 localeString('views.Tools.migration.export.success'),
                 localeString(
                     Platform.OS === 'android'
                         ? 'views.Tools.migration.export.success.text.android'
                         : 'views.Tools.migration.export.success.text'
-                ),
-                [
-                    {
-                        text: localeString('views.Wallet.restart'),
-                        onPress: () => RNRestart.Restart()
-                    }
-                ],
-                { cancelable: false }
+                )
             );
         };
 
@@ -701,16 +686,9 @@ export const exportChannelDb = async (
 
             if (isDismissed) {
                 await RNFS.unlink(stagingPath);
-                Alert.alert(
+                restartAlert(
                     localeString('views.Tools.migration.export.cancelled'),
-                    localeString('views.Tools.migration.export.cancelled.text'),
-                    [
-                        {
-                            text: localeString('views.Wallet.restart'),
-                            onPress: () => RNRestart.Restart()
-                        }
-                    ],
-                    { cancelable: false }
+                    localeString('views.Tools.migration.export.cancelled.text')
                 );
                 return;
             }
@@ -727,16 +705,9 @@ export const exportChannelDb = async (
                 errorMsg.includes('User did not share') ||
                 errorMsg.includes('cancel')
             ) {
-                Alert.alert(
+                restartAlert(
                     localeString('views.Tools.migration.export.cancelled'),
-                    localeString('views.Tools.migration.export.cancelled.text'),
-                    [
-                        {
-                            text: localeString('views.Wallet.restart'),
-                            onPress: () => RNRestart.Restart()
-                        }
-                    ],
-                    { cancelable: false }
+                    localeString('views.Tools.migration.export.cancelled.text')
                 );
                 return;
             }
@@ -746,17 +717,7 @@ export const exportChannelDb = async (
     } catch (error) {
         console.error('Export Failed:', error);
         setStatus(null);
-        Alert.alert(
-            localeString('general.error'),
-            undefined,
-            [
-                {
-                    text: localeString('views.Wallet.restart'),
-                    onPress: () => RNRestart.Restart()
-                }
-            ],
-            { cancelable: false }
-        );
+        restartAlert(localeString('general.error'));
     }
 };
 
